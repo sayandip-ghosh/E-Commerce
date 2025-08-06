@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { NavLink } from 'react-router-dom';
-import { Search, ShoppingCart, User, Menu, X, Star, Clock, TrendingUp, Sparkles } from 'lucide-react';
+import { Search, ShoppingCart, User, Menu, X, Star, Clock, TrendingUp, Sparkles, LogOut } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import TodaysDeal from '../Pages/LandingPage/TodaysDeal';
 import BestSeller from '../Pages/LandingPage/BestSeller';
 import FeaturedProducts from '../Pages/LandingPage/FeaturedProducts';
@@ -8,6 +9,7 @@ import NewArrival from '../Pages/LandingPage/NewArrival';
 
 const LandingPage = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user, isAuthenticated, logout } = useAuth();
 
   // Main categories and subitems for navbar
   const categories = [
@@ -346,13 +348,31 @@ const LandingPage = () => {
 
             {/* Right Navigation */}
             <div className="flex items-center space-x-6">
-              <NavLink to="/login" className="hidden md:flex items-center space-x-2 hover:text-blue-600 transition-colors">
-                <User size={20} />
-                <span className="font-medium">Login</span>
-              </NavLink>
-              <NavLink to="/admin/dashboard" className="hidden md:flex items-center space-x-2 hover:text-blue-600 font-medium border-2 border-gray-300 rounded-full px-4 py-2 transition-all duration-300 hover:border-blue-500 hover:bg-blue-50">
-                <span>Admin</span>
-              </NavLink>
+              {isAuthenticated ? (
+                <>
+                  <NavLink to="/profile" className="hidden md:flex items-center space-x-2 hover:text-blue-600 transition-colors">
+                    <User size={20} />
+                    <span className="font-medium">{user?.name || 'Profile'}</span>
+                  </NavLink>
+                  {user?.role === 'admin' && (
+                    <NavLink to="/admin/dashboard" className="hidden md:flex items-center space-x-2 hover:text-blue-600 font-medium border-2 border-gray-300 rounded-full px-4 py-2 transition-all duration-300 hover:border-blue-500 hover:bg-blue-50">
+                      <span>Admin</span>
+                    </NavLink>
+                  )}
+                  <button 
+                    onClick={logout}
+                    className="hidden md:flex items-center space-x-2 hover:text-red-600 transition-colors"
+                  >
+                    <LogOut size={20} />
+                    <span className="font-medium">Logout</span>
+                  </button>
+                </>
+              ) : (
+                <NavLink to="/profile" className="hidden md:flex items-center space-x-2 hover:text-blue-600 transition-colors">
+                  <User size={20} />
+                  <span className="font-medium">Login</span>
+                </NavLink>
+              )}
               <NavLink to="/cart" className="flex items-center space-x-2 hover:text-blue-600 transition-colors relative">
                 <ShoppingCart size={20} />
                 <span className="hidden md:inline font-medium">Cart</span>
@@ -386,6 +406,33 @@ const LandingPage = () => {
                 </a>
               </div>
             ))}
+            <div className="border-t border-gray-200 pt-4 mt-4">
+              {isAuthenticated ? (
+                <>
+                  <NavLink to="/profile" className="flex items-center space-x-2 py-3 hover:text-blue-600 transition-colors">
+                    <User size={20} />
+                    <span className="font-medium">{user?.name || 'Profile'}</span>
+                  </NavLink>
+                  {user?.role === 'admin' && (
+                    <NavLink to="/admin/dashboard" className="flex items-center space-x-2 py-3 hover:text-blue-600 transition-colors">
+                      <span className="font-medium">Admin Panel</span>
+                    </NavLink>
+                  )}
+                  <button 
+                    onClick={logout}
+                    className="flex items-center space-x-2 py-3 hover:text-red-600 transition-colors w-full text-left"
+                  >
+                    <LogOut size={20} />
+                    <span className="font-medium">Logout</span>
+                  </button>
+                </>
+              ) : (
+                <NavLink to="/profile" className="flex items-center space-x-2 py-3 hover:text-blue-600 transition-colors">
+                  <User size={20} />
+                  <span className="font-medium">Login</span>
+                </NavLink>
+              )}
+            </div>
           </div>
         )}
       </header>

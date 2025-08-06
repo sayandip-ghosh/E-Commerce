@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { FaShoppingCart, FaHeart, FaStar, FaRegStar, FaEye, FaShare } from "react-icons/fa";
 import { Clock, Zap } from "lucide-react";
+import { NavLink } from "react-router-dom";
 
 const TodaysDeal = ({ deals }) => {
   const [hoveredCard, setHoveredCard] = useState(null);
@@ -54,7 +55,7 @@ const TodaysDeal = ({ deals }) => {
             deals.map((deal, index) => (
               <div
                 key={deal.id}
-                className={`group bg-white rounded-2xl shadow-lg overflow-hidden transition-all duration-500 transform hover:-translate-y-4 hover:shadow-2xl border border-gray-100 relative card-hover animate-fade-in flex flex-col`}
+                className={`group bg-white rounded-2xl shadow-lg overflow-hidden transition-all duration-500 transform hover:-translate-y-4 hover:shadow-2xl border border-gray-100 relative card-hover animate-fade-in flex flex-col cursor-pointer`}
                 style={{ animationDelay: `${index * 0.1}s` }}
                 onMouseEnter={() => setHoveredCard(deal.id)}
                 onMouseLeave={() => setHoveredCard(null)}
@@ -69,7 +70,10 @@ const TodaysDeal = ({ deals }) => {
                 {/* Action Buttons */}
                 <div className="absolute top-4 right-4 z-20 flex flex-col space-y-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
                   <button
-                    onClick={() => toggleFavorite(deal.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFavorite(deal.id);
+                    }}
                     className={`p-2 rounded-full transition-all duration-300 ${
                       favorites.has(deal.id)
                         ? 'bg-red-500 text-white shadow-lg scale-110'
@@ -80,13 +84,17 @@ const TodaysDeal = ({ deals }) => {
                     <FaHeart className="text-sm" />
                   </button>
                   <button
-                    onClick={() => setQuickView(deal.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setQuickView(deal.id);
+                    }}
                     className="p-2 rounded-full bg-white text-gray-600 hover:text-blue-600 hover:bg-blue-50 shadow-md hover:scale-110 transition-all duration-300"
                     aria-label="Quick view"
                   >
                     <FaEye className="text-sm" />
                   </button>
                   <button
+                    onClick={(e) => e.stopPropagation()}
                     className="p-2 rounded-full bg-white text-gray-600 hover:text-green-600 hover:bg-green-50 shadow-md hover:scale-110 transition-all duration-300"
                     aria-label="Share"
                   >
@@ -94,92 +102,101 @@ const TodaysDeal = ({ deals }) => {
                   </button>
                 </div>
 
-                {/* Product Image */}
-                <div className="relative p-6 flex justify-center items-center h-64 bg-gradient-to-br from-gray-50 via-white to-gray-100 overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-red-50/50 to-orange-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10"></div>
-                  <img
-                    src={deal.image}
-                    alt={deal.name}
-                    className="max-h-full max-w-full object-contain transition-all duration-500 group-hover:scale-110 img-hover relative z-5"
-                  />
-                  {/* Hover Overlay */}
-                  <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-15"></div>
-                </div>
-
-                {/* Product Details */}
-                <div className="p-6 flex flex-col flex-grow">
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="font-bold text-lg text-gray-900 line-clamp-2 group-hover:text-red-600 transition-colors duration-300 flex-1 mr-2">
-                      {deal.name}
-                    </h3>
-                    <div className="text-right flex-shrink-0">
-                      <span className="text-xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">
-                        {deal.price}
-                      </span>
-                    </div>
+                {/* Clickable Product Content */}
+                <NavLink to={`/deals/${deal.id}`} className="flex flex-col flex-grow">
+                  {/* Product Image */}
+                  <div className="relative p-6 flex justify-center items-center h-64 bg-gradient-to-br from-gray-50 via-white to-gray-100 overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-red-50/50 to-orange-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10"></div>
+                    <img
+                      src={deal.image}
+                      alt={deal.name}
+                      className="max-h-full max-w-full object-contain transition-all duration-500 group-hover:scale-110 img-hover relative z-5"
+                    />
+                    {/* Hover Overlay */}
+                    <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-15"></div>
                   </div>
 
-                  <p className="text-gray-600 text-sm mb-3 line-clamp-2 leading-relaxed">
-                    {deal.specs}
-                  </p>
-
-                  {/* Price/Discount */}
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="text-gray-500 line-through text-sm font-medium">{deal.originalPrice}</span>
-                    <span className="text-red-600 font-semibold text-sm bg-red-50 px-2 py-1 rounded-full">
-                      {deal.discount} OFF
-                    </span>
-                  </div>
-
-                  {/* Rating and Reviews */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-2">
-                      <div className="flex text-yellow-400">
-                        {renderStars(deal.rating || 4.5)}
+                  {/* Product Details */}
+                  <div className="p-6 flex flex-col flex-grow">
+                    <div className="flex justify-between items-start mb-3">
+                      <h3 className="font-bold text-lg text-gray-900 line-clamp-2 group-hover:text-red-600 transition-colors duration-300 flex-1 mr-2">
+                        {deal.name}
+                      </h3>
+                      <div className="text-right flex-shrink-0">
+                        <span className="text-xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">
+                          {deal.price}
+                        </span>
                       </div>
-                      <span className="text-sm text-gray-500 font-medium">
-                        ({deal.reviews || 42})
+                    </div>
+
+                    <p className="text-gray-600 text-sm mb-3 line-clamp-2 leading-relaxed">
+                      {deal.specs}
+                    </p>
+
+                    {/* Price/Discount */}
+                    <div className="flex items-center gap-2 mb-4">
+                      <span className="text-gray-500 line-through text-sm font-medium">{deal.originalPrice}</span>
+                      <span className="text-red-600 font-semibold text-sm bg-red-50 px-2 py-1 rounded-full">
+                        {deal.discount} OFF
                       </span>
                     </div>
-                    <div className="flex items-center space-x-1 text-red-600 text-sm font-medium">
-                      <Zap className="w-4 h-4" />
-                      <span>Hot Deal</span>
+
+                    {/* Rating and Reviews */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-2">
+                        <div className="flex text-yellow-400">
+                          {renderStars(deal.rating || 4.5)}
+                        </div>
+                        <span className="text-sm text-gray-500 font-medium">
+                          ({deal.reviews || 42})
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-1 text-red-600 text-sm font-medium">
+                        <Zap className="w-4 h-4" />
+                        <span>Hot Deal</span>
+                      </div>
+                    </div>
+
+                    {/* Timer */}
+                    <div className="flex items-center justify-center space-x-2 text-red-600 text-sm font-semibold bg-red-50 px-3 py-2 rounded-lg mb-4">
+                      <Clock className="w-4 h-4" />
+                      <span>Time left: {deal.timeLeft}</span>
+                    </div>
+
+                    {/* Quick Stats */}
+                    <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
+                      <span className="flex items-center space-x-1">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span>In Stock</span>
+                      </span>
+                      <span className="flex items-center space-x-1">
+                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                        <span>Limited Time</span>
+                      </span>
+                    </div>
+
+                    {/* Add to Cart Button */}
+                    <div className="mt-auto">
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
+                        className={`w-full py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-3 group-hover:shadow-lg ${
+                          hoveredCard === deal.id
+                            ? 'bg-gradient-to-r from-red-600 to-orange-600 text-white transform scale-105'
+                            : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 hover:from-red-50 hover:to-orange-50 hover:text-red-600'
+                        } btn-animate`}
+                      >
+                        <FaShoppingCart className="text-sm" />
+                        <span>Add to Cart</span>
+                        {hoveredCard === deal.id && (
+                          <span className="ml-2 transform translate-x-1 transition-transform duration-300">→</span>
+                        )}
+                      </button>
                     </div>
                   </div>
-
-                  {/* Timer */}
-                  <div className="flex items-center justify-center space-x-2 text-red-600 text-sm font-semibold bg-red-50 px-3 py-2 rounded-lg mb-4">
-                    <Clock className="w-4 h-4" />
-                    <span>Time left: {deal.timeLeft}</span>
-                  </div>
-
-                  {/* Quick Stats */}
-                  <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
-                    <span className="flex items-center space-x-1">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span>In Stock</span>
-                    </span>
-                    <span className="flex items-center space-x-1">
-                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                      <span>Limited Time</span>
-                    </span>
-                  </div>
-
-                  {/* Add to Cart Button - Fixed height */}
-                  <button
-                    className={`w-full py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-3 group-hover:shadow-lg mt-auto ${
-                      hoveredCard === deal.id
-                        ? 'bg-gradient-to-r from-red-600 to-orange-600 text-white transform scale-105'
-                        : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 hover:from-red-50 hover:to-orange-50 hover:text-red-600'
-                    } btn-animate`}
-                  >
-                    <FaShoppingCart className="text-sm" />
-                    <span>Add to Cart</span>
-                    {hoveredCard === deal.id && (
-                      <span className="ml-2 transform translate-x-1 transition-transform duration-300">→</span>
-                    )}
-                  </button>
-                </div>
+                </NavLink>
 
                 {/* Hover Glow Effect */}
                 {hoveredCard === deal.id && (
@@ -207,12 +224,12 @@ const TodaysDeal = ({ deals }) => {
 
         {/* View All Button */}
         <div className="text-center mt-12 animate-fade-in">
-          <button className="inline-flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-gray-900 to-gray-700 text-white rounded-full font-semibold hover:from-gray-800 hover:to-gray-600 transition-all duration-300 transform hover:scale-105 shadow-lg">
+          <NavLink to="/deals" className="inline-flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-gray-900 to-gray-700 text-white rounded-full font-semibold hover:from-gray-800 hover:to-gray-600 transition-all duration-300 transform hover:scale-105 shadow-lg">
             <span>View All Deals</span>
             <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
             </svg>
-          </button>
+          </NavLink>
         </div>
       </div>
     </section>
