@@ -80,10 +80,13 @@ userSchema.pre('save', async function(next) {
 
 // Sign JWT and return
 userSchema.methods.getSignedJwtToken = function() {
+  // Set expiration to 30 days in seconds (30 * 24 * 60 * 60)
+  const expiresIn = 2592000; // 30 days in seconds
+
   return jwt.sign(
     { id: this._id },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRE }
+    { expiresIn }
   );
 };
 
@@ -98,7 +101,7 @@ userSchema.methods.sendTokenResponse = function(res, statusCode) {
   
   const options = {
     expires: new Date(
-      Date.now() + process.env.JWT_COOKIE_EXPIRE * 24 * 60 * 60 * 1000
+      Date.now() + 2592000 * 1000 // 30 days in milliseconds
     ),
     httpOnly: true
   };

@@ -7,6 +7,7 @@ require('dotenv').config();
 
 // Import routes
 const authRoutes = require('./routes/auth');
+// const edgeStoreRoutes = require('./routes/edgestore'); // Temporarily disabled
 const dealsRoutes = require('./routes/deals');
 const productsRoutes = require('./routes/products');
 const cartRoutes = require('./routes/cart');
@@ -32,7 +33,7 @@ app.use('/api/', limiter);
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: process.env.FRONTEND_URL ,
   credentials: true
 }));
 
@@ -56,6 +57,7 @@ app.get('/api/health', (req, res) => {
 
 // API routes
 app.use('/api/auth', authRoutes);
+// app.use('/api/edgestore', edgeStoreRoutes); // Temporarily disabled
 app.use('/api/deals', dealsRoutes);
 app.use('/api/products', productsRoutes);
 app.use('/api/cart', cartRoutes);
@@ -66,7 +68,7 @@ app.use('/api/reviews', reviewsRoutes);
 app.use('/api/admin', adminRoutes);
 
 // 404 handler
-app.use('*', (req, res) => {
+app.use((req, res) => {
   res.status(404).json({
     success: false,
     message: 'Route not found',

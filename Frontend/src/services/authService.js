@@ -184,6 +184,51 @@ class AuthService {
   getToken() {
     return this.token;
   }
+
+  // Admin login
+  async adminLogin(credentials) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/admin/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(credentials)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Admin login failed');
+      }
+
+      this.setAuth(data.token, data.user);
+      return data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Register new admin (requires admin privileges)
+  async registerAdmin(adminData) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/admin/register`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(adminData)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Admin registration failed');
+      }
+
+      return data;
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
 export default new AuthService();

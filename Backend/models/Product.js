@@ -1,5 +1,17 @@
 const mongoose = require('mongoose');
 
+// Image schema for multiple product images
+const imageSchema = new mongoose.Schema({
+  url: {
+    type: String,
+    required: true
+  },
+  isPrimary: {
+    type: Boolean,
+    default: false
+  }
+});
+
 const productSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -21,10 +33,7 @@ const productSchema = new mongoose.Schema({
     type: Number,
     min: [0, 'Compare at price cannot be negative']
   },
-  images: [{
-    type: String,
-    required: [true, 'Please provide at least one image']
-  }],
+  images: [imageSchema],
   category: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Category',
@@ -155,7 +164,7 @@ const productSchema = new mongoose.Schema({
 });
 
 // Virtual for discount percentage
-productSchema.virtual('discountPercentage').get(function() {
+productSchema.virtual('discountPercentage').get(function () {
   if (this.compareAtPrice && this.compareAtPrice > this.price) {
     return Math.round(((this.compareAtPrice - this.price) / this.compareAtPrice) * 100);
   }
@@ -163,7 +172,7 @@ productSchema.virtual('discountPercentage').get(function() {
 });
 
 // Virtual for savings amount
-productSchema.virtual('savings').get(function() {
+productSchema.virtual('savings').get(function () {
   if (this.compareAtPrice && this.compareAtPrice > this.price) {
     return this.compareAtPrice - this.price;
   }

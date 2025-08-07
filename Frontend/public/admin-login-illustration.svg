@@ -1,0 +1,21 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="80" fill="#F0F4FF" stroke="#E1E8FF" stroke-width="2"/>
+  
+  <!-- Shield -->
+  <path d="M100 40 L140 60 L140 120 C140 140 120 160 100 160 C80 160 60 140 60 120 L60 60 L100 40 Z" fill="#4F46E5" stroke="#3730A3" stroke-width="2"/>
+  
+  <!-- Shield inner -->
+  <path d="M100 50 L130 65 L130 115 C130 130 115 145 100 145 C85 145 70 130 70 115 L70 65 L100 50 Z" fill="#6366F1"/>
+  
+  <!-- Admin icon -->
+  <circle cx="100" cy="95" r="15" fill="white"/>
+  <circle cx="100" cy="85" r="8" fill="#4F46E5"/>
+  <path d="M85 110 C85 100 92 95 100 95 C108 95 115 100 115 110" fill="white" stroke="#4F46E5" stroke-width="2"/>
+  
+  <!-- Decorative elements -->
+  <circle cx="60" cy="60" r="3" fill="#A5B4FC" opacity="0.6"/>
+  <circle cx="140" cy="80" r="2" fill="#A5B4FC" opacity="0.6"/>
+  <circle cx="70" cy="140" r="2" fill="#A5B4FC" opacity="0.6"/>
+  <circle cx="130" cy="140" r="3" fill="#A5B4FC" opacity="0.6"/>
+</svg>

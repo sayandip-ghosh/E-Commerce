@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useLocation } from 'react-router-dom'
+import { Outlet, NavLink, useLocation, Navigate } from 'react-router-dom'
 import { 
   LayoutDashboard, 
   Package, 
@@ -7,11 +7,30 @@ import {
   Menu,
   X
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import authService from '../services/authService'
 
 const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [loading, setLoading] = useState(true)
   const location = useLocation()
+
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      try {
+        const user = await authService.getCurrentUser()
+        setIsAdmin(user && user.role === 'admin')
+      } catch (error) {
+        console.error('Error checking admin status:', error)
+        setIsAdmin(false)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    checkAdminStatus()
+  }, [])
 
   const navigation = [
     { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
@@ -21,6 +40,27 @@ const AdminLayout = () => {
 
   const isActive = (path) => {
     return location.pathname.startsWith(path)
+  }
+
+  const handleLogout = async () => {
+    try {
+      await authService.logout()
+      window.location.href = '/'
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    )
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/login" replace state={{ from: location }} />
   }
 
   return (
@@ -74,7 +114,10 @@ const AdminLayout = () => {
         </nav>
 
         <div className="absolute bottom-0 w-full p-4 border-t border-background">
-          <button className="flex items-center w-full px-3 py-2 text-sm text-text hover:text-headers hover:bg-background/50 rounded-md transition-colors duration-200">
+          <button 
+            onClick={handleLogout}
+            className="flex items-center w-full px-3 py-2 text-sm text-text hover:text-headers hover:bg-background/50 rounded-md transition-colors duration-200"
+          >
             <LogOut className="mr-3 h-5 w-5" />
             Logout
           </button>
