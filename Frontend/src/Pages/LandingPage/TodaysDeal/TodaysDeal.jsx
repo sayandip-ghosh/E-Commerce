@@ -103,7 +103,7 @@ const TodaysDeal = ({ deals }) => {
                 </div>
 
                 {/* Clickable Product Content */}
-                <NavLink to={`/deals/${deal.id}`} className="flex flex-col flex-grow">
+                <NavLink to={`/todays-deals/${deal.id}`} className="flex flex-col flex-grow">
                   {/* Product Image */}
                   <div className="relative p-6 flex justify-center items-center h-64 bg-gradient-to-br from-gray-50 via-white to-gray-100 overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-br from-red-50/50 to-orange-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10"></div>
@@ -224,7 +224,7 @@ const TodaysDeal = ({ deals }) => {
 
         {/* View All Button */}
         <div className="text-center mt-12 animate-fade-in">
-          <NavLink to="/deals" className="inline-flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-gray-900 to-gray-700 text-white rounded-full font-semibold hover:from-gray-800 hover:to-gray-600 transition-all duration-300 transform hover:scale-105 shadow-lg">
+          <NavLink to="/todays-deals" className="inline-flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-gray-900 to-gray-700 text-white rounded-full font-semibold hover:from-gray-800 hover:to-gray-600 transition-all duration-300 transform hover:scale-105 shadow-lg">
             <span>View All Deals</span>
             <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />

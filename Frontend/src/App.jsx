@@ -8,9 +8,11 @@ import AddEditProduct from './Pages/Admin/AddEditProduct'
 import Users from './Pages/Admin/Users'
 import UserDetails from './Pages/Admin/UserDetails'
 import LandingPage from './components/LandingPage'
-import DealsPage from './Pages/Deals/DealsPage'
-import DealDetail from './Pages/Deals/DealDetail'
 import UserProfile from './components/Auth/UserProfile'
+import { BestSellersPage } from './Pages/LandingPage/BestSellers/index.js'
+import { FeaturedPage, FeaturedDetail } from './Pages/LandingPage/FeaturedProducts'
+import { NewArrivalsPage, NewArrivalDetail } from './Pages/LandingPage/NewArrivals'
+import { TodaysDealsPage, TodaysDealDetail } from './Pages/LandingPage/TodaysDeal'
 
 function App() {
   return (
@@ -18,8 +20,17 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/deals" element={<DealsPage />} />
-          <Route path="/deals/:id" element={<DealDetail />} />
+          {/* Redirect /deals to /best-sellers */}
+          <Route path="/deals" element={<BestSellersPage />} />
+          {/* Featured Products Routes */}
+          <Route path="/featured" element={<FeaturedPage />} />
+          <Route path="/featured/:id" element={<FeaturedDetail />} />
+          {/* New Arrivals Routes */}
+          <Route path="/new-arrivals" element={<NewArrivalsPage />} />
+          <Route path="/new-arrivals/:id" element={<NewArrivalDetail />} />
+          {/* Today's Deals Routes */}
+          <Route path="/todays-deals" element={<TodaysDealsPage />} />
+          <Route path="/todays-deals/:id" element={<TodaysDealDetail />} />
           <Route path="/profile" element={
             <ProtectedRoute>
               <UserProfile />

@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import { FaShoppingCart, FaHeart, FaStar, FaRegStar, FaEye, FaShare } from "react-icons/fa";
-import { Sparkles, Zap } from "lucide-react";
+import { TrendingUp, Sparkles } from "lucide-react";
+import { NavLink } from "react-router-dom";
 
-const NewArrival = ({ products }) => {
+
+const BestSeller = ({ products }) => {
   const [hoveredCard, setHoveredCard] = useState(null);
   const [favorites, setFavorites] = useState(new Set());
   const [quickView, setQuickView] = useState(null);
@@ -36,15 +38,15 @@ const NewArrival = ({ products }) => {
         {/* Section Header */}
         <div className="text-center mb-12 animate-fade-in">
           <div className="flex items-center justify-center space-x-3 mb-4">
-            <div className="p-3 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full shadow-lg">
-              <Sparkles className="w-6 h-6 text-white" />
+            <div className="p-3 bg-gradient-to-r from-green-400 to-blue-500 rounded-full shadow-lg">
+              <TrendingUp className="w-6 h-6 text-white" />
             </div>
             <h2 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-              New Arrivals
+              Best Sellers
             </h2>
           </div>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Discover the latest and greatest products just added to our store. Be the first to experience cutting-edge technology and innovative designs.
+            Discover our most popular products that customers love. Each item is carefully selected based on quality, performance, and customer satisfaction.
           </p>
         </div>
 
@@ -61,8 +63,8 @@ const NewArrival = ({ products }) => {
               >
                 {/* Product Badge */}
                 <div className="absolute top-4 left-4 z-20">
-                  <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-full text-sm font-bold shadow-xl border-2 border-white">
-                    New
+                  <div className="bg-gradient-to-r from-green-500 to-blue-500 text-white px-4 py-2 rounded-full text-sm font-bold shadow-xl border-2 border-white">
+                    Best Seller
                   </div>
                 </div>
 
@@ -96,7 +98,7 @@ const NewArrival = ({ products }) => {
 
                 {/* Product Image */}
                 <div className="relative p-6 flex justify-center items-center h-64 bg-gradient-to-br from-gray-50 via-white to-gray-100 overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-purple-50/50 to-pink-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10"></div>
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-purple-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10"></div>
                   <img
                     src={product.image}
                     alt={product.name}
@@ -109,11 +111,11 @@ const NewArrival = ({ products }) => {
                 {/* Product Details */}
                 <div className="p-6 flex flex-col flex-grow">
                   <div className="flex justify-between items-start mb-3">
-                    <h3 className="font-bold text-lg text-gray-900 line-clamp-2 group-hover:text-purple-600 transition-colors duration-300 flex-1 mr-2">
+                    <h3 className="font-bold text-lg text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors duration-300 flex-1 mr-2">
                       {product.name}
                     </h3>
                     <div className="text-right flex-shrink-0">
-                      <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                      <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                         {product.price}
                       </span>
                     </div>
@@ -133,9 +135,9 @@ const NewArrival = ({ products }) => {
                         ({product.reviews || 42})
                       </span>
                     </div>
-                    <div className="flex items-center space-x-1 text-purple-600 text-sm font-medium">
-                      <Zap className="w-4 h-4" />
-                      <span>Latest</span>
+                    <div className="flex items-center space-x-1 text-green-600 text-sm font-medium">
+                      <Sparkles className="w-4 h-4" />
+                      <span>{product.soldCount}</span>
                     </div>
                   </div>
 
@@ -146,17 +148,18 @@ const NewArrival = ({ products }) => {
                       <span>In Stock</span>
                     </span>
                     <span className="flex items-center space-x-1">
-                      <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                       <span>Free Shipping</span>
                     </span>
                   </div>
 
                   {/* Add to Cart Button - Fixed height */}
-                  <button
+                  <NavLink
+                    to={`/best-sellers/${product.id}`}
                     className={`w-full py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-3 group-hover:shadow-lg mt-auto ${
                       hoveredCard === product.id
-                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white transform scale-105'
-                        : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 hover:from-purple-50 hover:to-pink-50 hover:text-purple-600'
+                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white transform scale-105'
+                        : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 hover:from-blue-50 hover:to-purple-50 hover:text-blue-600'
                     } btn-animate`}
                   >
                     <FaShoppingCart className="text-sm" />
@@ -164,12 +167,12 @@ const NewArrival = ({ products }) => {
                     {hoveredCard === product.id && (
                       <span className="ml-2 transform translate-x-1 transition-transform duration-300">→</span>
                     )}
-                  </button>
+                  </NavLink>
                 </div>
 
                 {/* Hover Glow Effect */}
                 {hoveredCard === product.id && (
-                  <div className="absolute inset-0 bg-gradient-to-t from-purple-500/5 to-pink-500/5 pointer-events-none rounded-2xl z-10"></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-blue-500/5 to-purple-500/5 pointer-events-none rounded-2xl z-10"></div>
                 )}
               </div>
             ))
@@ -180,11 +183,11 @@ const NewArrival = ({ products }) => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">No New Arrivals Available</h3>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">No Best Sellers Available</h3>
               <p className="text-gray-600 max-w-md mx-auto text-lg leading-relaxed">
-                We're currently updating our new arrivals collection. Check back soon for the latest products and innovations!
+                We're currently updating our best sellers collection. Check back soon for amazing products and exclusive deals!
               </p>
-              <button className="mt-6 px-8 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full font-semibold hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105 shadow-lg">
+              <button className="mt-6 px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg">
                 Browse All Products
               </button>
             </div>
@@ -193,16 +196,19 @@ const NewArrival = ({ products }) => {
 
         {/* View All Button */}
         <div className="text-center mt-12 animate-fade-in">
-          <button className="inline-flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-gray-900 to-gray-700 text-white rounded-full font-semibold hover:from-gray-800 hover:to-gray-600 transition-all duration-300 transform hover:scale-105 shadow-lg">
-            <span>View All New Arrivals</span>
+          <NavLink 
+            to="/deals" 
+            className="inline-flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-gray-900 to-gray-700 text-white rounded-full font-semibold hover:from-gray-800 hover:to-gray-600 transition-all duration-300 transform hover:scale-105 shadow-lg"
+          >
+            <span>View All Deals</span>
             <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
             </svg>
-          </button>
+          </NavLink>
         </div>
       </div>
     </section>
   );
 };
 
-export default NewArrival;
+export default BestSeller;

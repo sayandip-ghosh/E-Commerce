@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { FaShoppingCart, FaHeart, FaStar, FaRegStar, FaEye, FaShare } from "react-icons/fa";
 import { Star, Sparkles } from "lucide-react";
+import { NavLink } from "react-router-dom";
 
 const FeaturedProducts = ({ products }) => {
   const [hoveredCard, setHoveredCard] = useState(null);
@@ -151,8 +152,9 @@ const FeaturedProducts = ({ products }) => {
                     </span>
                   </div>
 
-                  {/* Add to Cart Button - Fixed height */}
-                  <button
+                  {/* View Details Button */}
+                  <NavLink
+                    to={`/featured/${product.id}`}
                     className={`w-full py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-3 group-hover:shadow-lg mt-auto ${
                       hoveredCard === product.id
                         ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white transform scale-105'
@@ -160,11 +162,11 @@ const FeaturedProducts = ({ products }) => {
                     } btn-animate`}
                   >
                     <FaShoppingCart className="text-sm" />
-                    <span>Add to Cart</span>
+                    <span>View Details</span>
                     {hoveredCard === product.id && (
                       <span className="ml-2 transform translate-x-1 transition-transform duration-300">→</span>
                     )}
-                  </button>
+                  </NavLink>
                 </div>
 
                 {/* Hover Glow Effect */}
@@ -193,12 +195,15 @@ const FeaturedProducts = ({ products }) => {
 
         {/* View All Button */}
         <div className="text-center mt-12 animate-fade-in">
-          <button className="inline-flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-gray-900 to-gray-700 text-white rounded-full font-semibold hover:from-gray-800 hover:to-gray-600 transition-all duration-300 transform hover:scale-105 shadow-lg">
+          <NavLink 
+            to="/featured"
+            className="inline-flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-gray-900 to-gray-700 text-white rounded-full font-semibold hover:from-gray-800 hover:to-gray-600 transition-all duration-300 transform hover:scale-105 shadow-lg"
+          >
             <span>View All Featured Products</span>
             <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
             </svg>
-          </button>
+          </NavLink>
         </div>
       </div>
     </section>
