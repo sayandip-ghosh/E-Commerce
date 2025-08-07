@@ -9,6 +9,8 @@ import Users from './Pages/Admin/Users'
 import UserDetails from './Pages/Admin/UserDetails'
 import LandingPage from './components/LandingPage'
 import UserProfile from './components/Auth/UserProfile'
+import AdminLogin from './components/Auth/AdminLogin'
+import AdminRegister from './components/Auth/AdminRegister'
 import { BestSellersPage } from './Pages/LandingPage/BestSellers/index.js'
 import { FeaturedPage, FeaturedDetail } from './Pages/LandingPage/FeaturedProducts'
 import { NewArrivalsPage, NewArrivalDetail } from './Pages/LandingPage/NewArrivals'
@@ -36,6 +38,11 @@ function App() {
               <UserProfile />
             </ProtectedRoute>
           } />
+          {/* Admin Auth Routes */}
+          <Route path="/admin/auth/login" element={<AdminLogin />} />
+          <Route path="/admin/auth/register" element={<AdminRegister />} />
+          
+          {/* Protected Admin Routes */}
           <Route path="/admin" element={
             <ProtectedRoute requireAdmin={true}>
               <AdminLayout />

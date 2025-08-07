@@ -1,6 +1,7 @@
 const express = require('express');
 const { body } = require('express-validator');
 const { protect } = require('../middleware/auth');
+const adminAuth = require('../middleware/adminAuth');
 const { handleValidationErrors } = require('../middleware/validate');
 const User = require('../models/User');
 
@@ -253,6 +254,141 @@ router.post('/forgot-password', [
     res.status(500).json({
       success: false,
       message: 'Server error'
+    });
+  }
+});
+
+// @route   POST /api/auth/admin/login
+// @desc    Admin login
+// @access  Public
+router.post('/admin/login', [
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please provide a valid email'),
+  body('password')
+    .notEmpty()
+    .withMessage('Password is required'),
+  handleValidationErrors
+], async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Check if user exists and is admin
+    const user = await User.findOne({ email, role: 'admin' }).select('+password');
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid admin credentials'
+      });
+    }
+
+    // Check if password matches
+    const isMatch = await user.matchPassword(password);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid admin credentials'
+      });
+    }
+
+    // Update last login
+    user.lastLogin = new Date();
+    await user.save();
+
+    // Generate token
+    const token = user.getSignedJwtToken();
+
+    res.status(200).json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar
+      }
+    });
+  } catch (error) {
+    console.error('Admin login error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during admin login'
+    });
+  }
+});
+
+// @route   POST /api/auth/admin/register
+// @desc    Register a new admin (first admin can register without auth, subsequent admins need admin auth)
+// @access  Mixed
+router.post('/admin/register', async (req, res, next) => {
+  try {
+    // Check if any admin exists
+    const adminExists = await User.findOne({ role: 'admin' });
+    
+    // If admin exists, require authentication
+    if (adminExists) {
+      return adminAuth(req, res, next);
+    }
+    // If no admin exists, allow registration without auth
+    next();
+  } catch (error) {
+    console.error('Admin check error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error checking admin status'
+    });
+  }
+}, [
+  body('name')
+    .trim()
+    .isLength({ min: 2, max: 50 })
+    .withMessage('Name must be between 2 and 50 characters'),
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please provide a valid email'),
+  body('password')
+    .isLength({ min: 6 })
+    .withMessage('Password must be at least 6 characters long'),
+  handleValidationErrors
+], async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    // Check if admin already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'User already exists with this email'
+      });
+    }
+
+    // Create admin user
+    const user = await User.create({
+      name,
+      email,
+      password,
+      role: 'admin'
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Admin user created successfully',
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error('Admin registration error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during admin registration'
     });
   }
 });

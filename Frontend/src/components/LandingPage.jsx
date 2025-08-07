@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { NavLink } from 'react-router-dom';
-import { Search, ShoppingCart, User, Menu, X, Star, Clock, TrendingUp, Sparkles } from 'lucide-react';
+import authService from '../services/authService';
+import { Search, ShoppingCart, User, Menu, X, Star, Clock, TrendingUp, Sparkles, LayoutDashboard } from 'lucide-react';
 import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
 import { TodaysDeal } from '../Pages/LandingPage/TodaysDeal';
@@ -10,7 +11,22 @@ import NewArrival from '../Pages/LandingPage/NewArrivals/NewArrival';
 
 const LandingPage = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [emblaRef] = useEmblaCarousel({ loop: true }, [Autoplay()]);
+
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      try {
+        const user = await authService.getCurrentUser();
+        setIsAdmin(user && user.role === 'admin');
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        setIsAdmin(false);
+      }
+    };
+
+    checkAdminStatus();
+  }, []);
 
   // Carousel slides data
   const carouselSlides = [
@@ -269,19 +285,26 @@ const LandingPage = () => {
             </div>
 
             {/* Right Navigation */}
-            <div className="flex items-center space-x-6">
-              <NavLink to="/profile" className="hidden md:flex items-center space-x-2 hover:text-blue-600 transition-colors">
-                <User size={20} />
-                <span className="font-medium">Login</span>
-              </NavLink>
-              <NavLink to="/cart" className="flex items-center space-x-2 hover:text-blue-600 transition-colors relative">
-                <ShoppingCart size={20} />
-                <span className="hidden md:inline font-medium">Cart</span>
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">3</span>
-              </NavLink>
+            <div className="flex items-center space-x-4">
+              <div className="hidden md:flex items-center space-x-4">
+                <NavLink to="/profile" className="flex items-center space-x-2 hover:text-blue-600 transition-colors">
+                  <User size={20} />
+                  <span className="font-medium">User Login</span>
+                </NavLink>
+                <span className="text-gray-300">|</span>
+                <NavLink to="/admin/auth/login" className="flex items-center space-x-2 hover:text-blue-600 transition-colors">
+                  <LayoutDashboard size={20} />
+                  <span className="font-medium">Admin Login</span>
+                </NavLink>
+                <NavLink to="/cart" className="flex items-center space-x-2 hover:text-blue-600 transition-colors relative">
+                  <ShoppingCart size={20} />
+                  <span className="hidden md:inline font-medium">Cart</span>
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">3</span>
+                </NavLink>
+              </div>
               <button 
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
@@ -308,10 +331,16 @@ const LandingPage = () => {
               </div>
             ))}
             <div className="border-t border-gray-200 pt-4 mt-4">
-              <NavLink to="/profile" className="flex items-center space-x-2 py-3 hover:text-blue-600 transition-colors">
-                <User size={20} />
-                <span className="font-medium">Login</span>
-              </NavLink>
+              <div className="space-y-3">
+                <NavLink to="/profile" className="flex items-center space-x-2 py-3 hover:text-blue-600 transition-colors">
+                  <User size={20} />
+                  <span className="font-medium">User Login</span>
+                </NavLink>
+                <NavLink to="/admin/auth/login" className="flex items-center space-x-2 py-3 hover:text-blue-600 transition-colors">
+                  <LayoutDashboard size={20} />
+                  <span className="font-medium">Admin Login</span>
+                </NavLink>
+              </div>
             </div>
           </div>
         )}
