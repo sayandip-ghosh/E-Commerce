@@ -8,25 +8,14 @@ import { TodaysDeal } from '../Pages/LandingPage/TodaysDeal';
 import BestSeller from '../Pages/LandingPage/BestSellers/BestSeller';
 import { FeaturedProducts } from '../Pages/LandingPage/FeaturedProducts';
 import NewArrival from '../Pages/LandingPage/NewArrivals/NewArrival';
+import { useAdminAuth } from '../context/AdminAuthContext';
 
 const LandingPage = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { admin } = useAdminAuth();
   const [emblaRef] = useEmblaCarousel({ loop: true }, [Autoplay()]);
 
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      try {
-        const user = await authService.getCurrentUser();
-        setIsAdmin(user && user.role === 'admin');
-      } catch (error) {
-        console.error('Error checking admin status:', error);
-        setIsAdmin(false);
-      }
-    };
-
-    checkAdminStatus();
-  }, []);
+  const isAdmin = !!admin;
 
   // Carousel slides data
   const carouselSlides = [

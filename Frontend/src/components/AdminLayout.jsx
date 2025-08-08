@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useLocation, Navigate } from 'react-router-dom'
+import { Outlet, NavLink, useLocation } from 'react-router-dom'
 import { 
   LayoutDashboard, 
   Package, 
@@ -7,30 +7,13 @@ import {
   Menu,
   X
 } from 'lucide-react'
-import { useState, useEffect } from 'react'
-import authService from '../services/authService'
+import { useState } from 'react'
+import { useAdminAuth } from '../context/AdminAuthContext'
 
 const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const { admin, adminLogout } = useAdminAuth()
   const location = useLocation()
-
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      try {
-        const user = await authService.getCurrentUser()
-        setIsAdmin(user && user.role === 'admin')
-      } catch (error) {
-        console.error('Error checking admin status:', error)
-        setIsAdmin(false)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    checkAdminStatus()
-  }, [])
 
   const navigation = [
     { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
@@ -44,23 +27,11 @@ const AdminLayout = () => {
 
   const handleLogout = async () => {
     try {
-      await authService.logout()
+      await adminLogout()
       window.location.href = '/'
     } catch (error) {
       console.error('Logout error:', error)
     }
-  }
-
-  if (loading) {
-    return (
-      <div className="h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    )
-  }
-
-  if (!isAdmin) {
-    return <Navigate to="/login" replace state={{ from: location }} />
   }
 
   return (
@@ -137,7 +108,7 @@ const AdminLayout = () => {
             </button>
             <div className="flex items-center space-x-4">
               <div className="text-sm text-headers font-medium">
-                Welcome back, Admin
+                Welcome back, {admin?.name || 'Admin'}
               </div>
             </div>
           </div>

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const adminAuth = require('../middleware/adminAuth');
+const { protect, admin } = require('../middleware/auth');
 const adminController = require('../controllers/admin');
 const multer = require('multer');
 
@@ -19,7 +19,7 @@ const upload = multer({
 });
 
 // Apply admin authentication to all routes
-router.use(adminAuth);
+router.use(protect, admin);
 
 // Dashboard Routes
 router.get('/dashboard/stats', adminController.getDashboardStats);

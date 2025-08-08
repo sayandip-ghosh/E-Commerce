@@ -14,10 +14,6 @@ const userSchema = new mongoose.Schema({
     required: [true, 'Please provide an email'],
     unique: true,
     lowercase: true,
-    match: [
-      /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
-      'Please provide a valid email'
-    ]
   },
   password: {
     type: String,
@@ -71,22 +67,20 @@ const userSchema = new mongoose.Schema({
 // Encrypt password before saving
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) {
-    next();
+    return next();
   }
   
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
+  next();
 });
 
 // Sign JWT and return
 userSchema.methods.getSignedJwtToken = function() {
-  // Set expiration to 30 days in seconds (30 * 24 * 60 * 60)
-  const expiresIn = 2592000; // 30 days in seconds
-
   return jwt.sign(
-    { id: this._id },
+    { id: this._id, role: this.role },
     process.env.JWT_SECRET,
-    { expiresIn }
+    { expiresIn: '30d' }
   );
 };
 
@@ -95,32 +89,4 @@ userSchema.methods.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// Create and send response with token
-userSchema.methods.sendTokenResponse = function(res, statusCode) {
-  const token = this.getSignedJwtToken();
-  
-  const options = {
-    expires: new Date(
-      Date.now() + 2592000 * 1000 // 30 days in milliseconds
-    ),
-    httpOnly: true
-  };
-
-  if (process.env.NODE_ENV === 'production') {
-    options.secure = true;
-  }
-
-  res.status(statusCode).json({
-    success: true,
-    token,
-    user: {
-      id: this._id,
-      name: this.name,
-      email: this.email,
-      role: this.role,
-      avatar: this.avatar
-    }
-  });
-};
-
-module.exports = mongoose.model('User', userSchema); 
+module.exports = mongoose.model('User', userSchema);

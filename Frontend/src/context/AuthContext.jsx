@@ -40,6 +40,19 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       const data = await authService.login(credentials);
+      console.log('Login response----:', data);
+      setUser(data.user);
+      return data;
+    } catch (error) {
+      setError(error.message);
+      throw error;
+    }
+  };
+  const adminLogin = async (credentials) => {
+    try {
+      setError(null);
+      const data = await authService.adminLogin(credentials);
+      console.log('Login response----:', data);
       setUser(data.user);
       return data;
     } catch (error) {
@@ -109,6 +122,7 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
     login,
+    adminLogin,
     register,
     logout,
     updateProfile,

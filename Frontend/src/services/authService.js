@@ -1,4 +1,6 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+import axios from 'axios';
+
+const API_BASE_URL = 'http://localhost:8000/api';
 
 class AuthService {
   constructor() {
@@ -33,48 +35,22 @@ class AuthService {
   // Register user
   async register(userData) {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(userData)
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Registration failed');
-      }
-
-      this.setAuth(data.token, data.user);
-      return data;
+      const response = await axios.post(`${API_BASE_URL}/auth/register`, userData);
+      this.setAuth(response.data.token, response.data.user);
+      return response.data;
     } catch (error) {
-      throw error;
+      throw new Error(error.response?.data?.message || 'Registration failed');
     }
   }
 
   // Login user
   async login(credentials) {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(credentials)
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Login failed');
-      }
-
-      this.setAuth(data.token, data.user);
-      return data;
+      const response = await axios.post(`${API_BASE_URL}/auth/login`, credentials);
+      this.setAuth(response.data.token, response.data.user);
+      return response.data;
     } catch (error) {
-      throw error;
+      throw new Error(error.response?.data?.message || 'Login failed');
     }
   }
 
@@ -82,8 +58,7 @@ class AuthService {
   async logout() {
     try {
       if (this.token) {
-        await fetch(`${API_BASE_URL}/auth/logout`, {
-          method: 'POST',
+        await axios.post(`${API_BASE_URL}/auth/logout`, {}, {
           headers: this.getAuthHeaders()
         });
       }
@@ -101,19 +76,13 @@ class AuthService {
         return null;
       }
 
-      const response = await fetch(`${API_BASE_URL}/auth/me`, {
+      const response = await axios.get(`${API_BASE_URL}/auth/me`, {
         headers: this.getAuthHeaders()
       });
 
-      if (!response.ok) {
-        this.clearAuth();
-        return null;
-      }
-
-      const data = await response.json();
-      this.user = data.user;
-      localStorage.setItem('user', JSON.stringify(data.user));
-      return data.user;
+      this.user = response.data.user;
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      return response.data.user;
     } catch (error) {
       console.error('Get current user error:', error);
       this.clearAuth();
@@ -124,44 +93,28 @@ class AuthService {
   // Update user profile
   async updateProfile(profileData) {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/update-profile`, {
-        method: 'PUT',
-        headers: this.getAuthHeaders(),
-        body: JSON.stringify(profileData)
+      const response = await axios.put(`${API_BASE_URL}/auth/update-profile`, profileData, {
+        headers: this.getAuthHeaders()
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Profile update failed');
-      }
-
-      this.user = data.user;
-      localStorage.setItem('user', JSON.stringify(data.user));
-      return data;
+      this.user = response.data.user;
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      return response.data;
     } catch (error) {
-      throw error;
+      throw new Error(error.response?.data?.message || 'Profile update failed');
     }
   }
 
   // Change password
   async changePassword(passwordData) {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
-        method: 'PUT',
-        headers: this.getAuthHeaders(),
-        body: JSON.stringify(passwordData)
+      const response = await axios.put(`${API_BASE_URL}/auth/change-password`, passwordData, {
+        headers: this.getAuthHeaders()
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Password change failed');
-      }
-
-      return data;
+      return response.data;
     } catch (error) {
-      throw error;
+      throw new Error(error.response?.data?.message || 'Password change failed');
     }
   }
 
@@ -188,45 +141,34 @@ class AuthService {
   // Admin login
   async adminLogin(credentials) {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/admin/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(credentials)
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Admin login failed');
-      }
-
-      this.setAuth(data.token, data.user);
-      return data;
+      const response = await axios.post(`${API_BASE_URL}/auth/admin/login`, credentials);
+      this.setAuth(response.data.data.token, response.data.data.admin);
+      console.log('Admin login response++++:', response);
+      return response.data;
     } catch (error) {
-      throw error;
+      throw new Error(error.response?.data?.message || 'Admin login failed');
     }
   }
 
   // Register new admin (requires admin privileges)
   async registerAdmin(adminData) {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/admin/register`, {
-        method: 'POST',
-        headers: this.getAuthHeaders(),
-        body: JSON.stringify(adminData)
+      console.log('data=', adminData);
+      const response = await axios.post(`${API_BASE_URL}/auth/admin/setup`, adminData, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Admin registration failed');
+      // Handle the response data structure from backend
+      if (response.data.success) {
+        return response.data;
+      } else {
+        throw new Error(response.data.message || 'Admin registration failed');
       }
-
-      return data;
     } catch (error) {
-      throw error;
+      console.error('Admin registration error:', error.response || error);
+      throw new Error(error.response?.data?.message || 'Admin registration failed');
     }
   }
 }

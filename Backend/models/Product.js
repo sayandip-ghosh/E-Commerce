@@ -43,11 +43,6 @@ const productSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
-  sku: {
-    type: String,
-    unique: true,
-    trim: true
-  },
   specs: {
     type: String,
     maxlength: [1000, 'Specifications cannot be more than 1000 characters']

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import authService from '../../services/authService';
+import { useAdminAuth } from '../../context/AdminAuthContext';
 
 const AdminLogin = () => {
   const [formData, setFormData] = useState({
@@ -11,6 +11,7 @@ const AdminLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { adminLogin, error: contextError, clearError } = useAdminAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -25,14 +26,11 @@ const AdminLogin = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
+    clearError();
 
     try {
-      const response = await authService.adminLogin(formData);
-      if (response.user.role !== 'admin') {
-        throw new Error('Unauthorized access');
-      }
-      
-      const from = location.state?.from?.pathname || '/admin';
+      await adminLogin(formData);
+      const from = location.state?.from?.pathname || '/admin/dashboard';
       navigate(from, { replace: true });
     } catch (error) {
       setError(error.message || 'Invalid admin credentials');
@@ -40,6 +38,8 @@ const AdminLogin = () => {
       setLoading(false);
     }
   };
+
+  const displayError = error || contextError;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F5F7FF] px-4 py-12">
@@ -62,9 +62,9 @@ const AdminLogin = () => {
         </div>
 
         {/* Error Message */}
-        {error && (
+        {displayError && (
           <div className="mb-6 bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-lg text-sm">
-            {error}
+            {displayError}
           </div>
         )}
 
@@ -159,26 +159,7 @@ const AdminLogin = () => {
             </p>
           </div>
 
-          {/* Or Divider */}
-          <div className="relative mt-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500">or</span>
-            </div>
-          </div>
-
-          {/* Social Login Buttons */}
-          <div className="space-y-3">
-            <button
-              type="button"
-              className="w-full flex items-center justify-center px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all"
-            >
-              <img src="/google-icon.svg" alt="Google" className="w-5 h-5 mr-3" />
-              <span className="text-gray-700 font-medium">Continue with Google</span>
-            </button>
-          </div>
+          
         </form>
       </div>
     </div>

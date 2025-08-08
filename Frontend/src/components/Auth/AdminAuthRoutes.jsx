@@ -1,8 +1,8 @@
-import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+// import React from 'react';
+// import { Navigate, Outlet } from 'react-router-dom';
 
-const AdminAuthRoutes = () => {
-  return <Outlet />;
-};
+// const AdminAuthRoutes = () => {
+//   return <Outlet />;
+// };
 
-export default AdminAuthRoutes;
+// export default AdminAuthRoutes;
