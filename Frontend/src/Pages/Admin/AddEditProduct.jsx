@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, Upload, X, Plus, Star } from 'lucide-react'
+import productService from '../../services/productService'
 
 const AddEditProduct = () => {
   const { id } = useParams()
@@ -21,24 +22,24 @@ const AddEditProduct = () => {
   const [errors, setErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Mock data for editing - in a real app, fetch from API
+  // Replace mock data with real API call
   useEffect(() => {
     if (isEditing) {
-      // Simulate fetching product data
-      const mockProduct = {
-        id: 1,
-        title: 'Premium Wireless Headphones',
-        description: 'High-quality wireless headphones with noise cancellation and superior sound quality. Perfect for music lovers and professionals.',
-        brand: 'AudioTech',
-        mrp: 299.99,
-        discount: 20,
-        rating: 4.5,
-        features: ['Noise Cancellation', 'Wireless Connectivity', '30-hour Battery Life', 'Premium Sound Quality'],
-        images: ['/api/placeholder/400/400', '/api/placeholder/400/400', '', '']
-      }
-      setFormData(mockProduct)
+      fetchProduct();
     }
-  }, [isEditing, id])
+  }, [isEditing, id]);
+
+  const fetchProduct = async () => {
+    try {
+      const response = await productService.getProduct(id);
+      if (response.success) {
+        setFormData(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching product:', error);
+      setErrors({ general: error.message });
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -134,21 +135,57 @@ const AddEditProduct = () => {
     }
 
     setIsSubmitting(true)
+    setErrors({}) // Clear previous errors
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // In a real app, you would make an API call here
-      console.log('Submitting product:', {
-        ...formData,
-        features: formData.features.filter(feature => feature.trim()),
-        images: formData.images.filter(image => image.trim())
-      })
-      
-      navigate('/admin/products')
+      // Ensure proper data types and filter empty values
+      const productData = {
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        brand: formData.brand.trim(),
+        mrp: Number(formData.mrp),
+        discount: Number(formData.discount) || 0,
+        rating: parseFloat(formData.rating) || 0,
+        features: formData.features.filter(feature => feature.trim()).map(f => f.trim()),
+        images: formData.images.filter(image => image.trim()).map(i => i.trim())
+      };
+
+      // Ensure at least one feature exists
+      if (productData.features.length === 0) {
+        setErrors({ features: 'At least one feature is required' });
+        return;
+      }
+
+      console.log('Submitting product data:', productData); // Debug log
+
+      let response;
+      if (isEditing) {
+        response = await productService.updateProduct(id, productData);
+      } else {
+        response = await productService.createProduct(productData);
+      }
+
+      if (response.success) {
+        navigate('/admin/products');
+      }
     } catch (error) {
-      console.error('Error saving product:', error)
+      console.error('Error saving product:', error);
+      
+      // Handle specific error cases
+      if (error.message.includes('title already exists')) {
+        setErrors({ 
+          title: 'A product with this title already exists. Please use a different title.',
+          general: 'Please choose a unique product title.'
+        });
+      } else if (error.message.includes('sku already exists')) {
+        setErrors({ 
+          general: 'There is a data conflict. Please try refreshing the page and try again.'
+        });
+      } else if (error.message.includes('Validation errors')) {
+        setErrors({ general: error.message });
+      } else {
+        setErrors({ general: error.message });
+      }
     } finally {
       setIsSubmitting(false)
     }
@@ -198,6 +235,12 @@ const AddEditProduct = () => {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
+        {errors.general && (
+          <div className="bg-red-50 border border-red-200 rounded-md p-4">
+            <p className="text-red-600 text-sm">{errors.general}</p>
+          </div>
+        )}
+        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Information */}
           <div className="lg:col-span-2 space-y-6">
@@ -350,7 +393,7 @@ const AddEditProduct = () => {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    MRP ($) *
+                    MRP (₹) *
                   </label>
                   <input
                     type="number"
@@ -389,10 +432,10 @@ const AddEditProduct = () => {
                 {formData.mrp && formData.discount > 0 && (
                   <div className="p-3 bg-green-50 rounded-md">
                     <p className="text-sm text-green-800">
-                      Sale Price: ${(formData.mrp - (formData.mrp * formData.discount / 100)).toFixed(2)}
+                      Sale Price: ₹{(formData.mrp - (formData.mrp * formData.discount / 100)).toFixed(2)}
                     </p>
                     <p className="text-sm text-green-600">
-                      You save: ${(formData.mrp * formData.discount / 100).toFixed(2)}
+                      You save: ₹{(formData.mrp * formData.discount / 100).toFixed(2)}
                     </p>
                   </div>
                 )}

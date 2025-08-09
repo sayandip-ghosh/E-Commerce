@@ -31,14 +31,14 @@ const getProducts = async (req, res) => {
     if (newArrival === 'true') queryObj.isNewArrival = true;
     if (bestSeller === 'true') queryObj.isBestSeller = true;
 
-    // Price range filter
+    // Price range filter using mrp field
     if (minPrice || maxPrice) {
-      queryObj.price = {};
-      if (minPrice) queryObj.price.$gte = minPrice;
-      if (maxPrice) queryObj.price.$lte = maxPrice;
+      queryObj.mrp = {};
+      if (minPrice) queryObj.mrp.$gte = minPrice;
+      if (maxPrice) queryObj.mrp.$lte = maxPrice;
     }
 
-    // Search functionality
+    // Search functionality using title field
     if (search) {
       queryObj.$text = { $search: search };
     }
@@ -126,10 +126,74 @@ const getProduct = async (req, res) => {
 // @access  Private (Admin only)
 const createProduct = async (req, res) => {
   try {
-    // Add the admin who created the product
-    req.body.createdBy = req.user.id;
+    console.log('Request body:', req.body); // Debug log
+    console.log('User from request:', req.user); // Debug log
 
-    const product = await Product.create(req.body);
+    // Extract and validate frontend form data
+    const {
+      title,
+      description,
+      brand,
+      mrp,
+      discount = 0,
+      rating = 0,
+      features,
+      images
+    } = req.body;
+
+    // Validate required fields
+    if (!title || !description || !brand || !mrp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide all required fields: title, description, brand, and mrp'
+      });
+    }
+
+    // Ensure user exists
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        message: 'User authentication required'
+      });
+    }
+
+    // Filter out empty features and images
+    const validFeatures = features ? features.filter(feature => feature.trim()) : [];
+    const validImages = images ? images.filter(image => image.trim()) : [];
+
+    // Ensure at least one feature
+    if (validFeatures.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'At least one feature is required'
+      });
+    }
+
+    // Check if title already exists
+    const existingProduct = await Product.findOne({ title: title.trim() });
+    if (existingProduct) {
+      return res.status(400).json({
+        success: false,
+        message: 'A product with this title already exists'
+      });
+    }
+
+    // Create product data object
+    const productData = {
+      title: title.trim(),
+      description: description.trim(),
+      brand: brand.trim(),
+      mrp: parseFloat(mrp),
+      discount: parseFloat(discount) || 0,
+      rating: parseFloat(rating) || 0,
+      features: validFeatures,
+      images: validImages,
+      createdBy: req.user.id
+    };
+
+    console.log('Creating product with data:', productData); // Debug log
+
+    const product = await Product.create(productData);
 
     const populatedProduct = await Product.findById(product._id)
       .populate('category', 'name')
@@ -158,9 +222,26 @@ const createProduct = async (req, res) => {
       });
     }
 
+    // Handle duplicate key errors for title
+    if (error.code === 11000) {
+      if (error.keyPattern && error.keyPattern.title) {
+        return res.status(400).json({
+          success: false,
+          message: 'A product with this title already exists'
+        });
+      }
+      // Handle other potential duplicate keys
+      const field = Object.keys(error.keyPattern || {})[0] || 'field';
+      return res.status(400).json({
+        success: false,
+        message: `A product with this ${field} already exists`
+      });
+    }
+
     res.status(500).json({
       success: false,
-      message: 'Server error creating product'
+      message: 'Server error creating product',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -179,9 +260,37 @@ const updateProduct = async (req, res) => {
       });
     }
 
+    // Extract and validate frontend form data
+    const {
+      title,
+      description,
+      brand,
+      mrp,
+      discount,
+      rating,
+      features,
+      images
+    } = req.body;
+
+    // Filter out empty features and images
+    const validFeatures = features ? features.filter(feature => feature.trim()) : [];
+    const validImages = images ? images.filter(image => image.trim()) : [];
+
+    // Update product data
+    const updateData = {
+      ...(title && { title: title.trim() }),
+      ...(description && { description: description.trim() }),
+      ...(brand && { brand: brand.trim() }),
+      ...(mrp && { mrp: parseFloat(mrp) }),
+      ...(discount !== undefined && { discount: parseFloat(discount) }),
+      ...(rating !== undefined && { rating: parseFloat(rating) }),
+      ...(features && { features: validFeatures }),
+      ...(images && { images: validImages })
+    };
+
     product = await Product.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      updateData,
       {
         new: true,
         runValidators: true

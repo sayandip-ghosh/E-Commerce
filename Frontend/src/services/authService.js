@@ -125,7 +125,7 @@ class AuthService {
 
   // Check if user is admin
   isAdmin() {
-    return this.user && this.user.role === 'admin';
+    return this.user && (this.user.role === 'admin' || this.user.isAdmin === true);
   }
 
   // Get user data

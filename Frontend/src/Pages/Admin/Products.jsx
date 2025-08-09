@@ -1,67 +1,38 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Search, Edit, Trash2, Star, Eye, Package } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, Star, Eye, Package, AlertCircle } from 'lucide-react'
+import productService from '../../services/productService'
 
 const Products = () => {
   const [products, setProducts] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [filteredProducts, setFilteredProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [deleteLoading, setDeleteLoading] = useState('')
 
-  // Mock data - in a real app, this would come from your API
+  // Fetch products from API
   useEffect(() => {
-    const mockProducts = [
-      {
-        id: 1,
-        title: 'Premium Wireless Headphones',
-        description: 'High-quality wireless headphones with noise cancellation',
-        brand: 'AudioTech',
-        mrp: 299.99,
-        discount: 20,
-        rating: 4.5,
-        images: ['/api/placeholder/200/200'],
-        features: ['Noise Cancellation', 'Wireless', '30hr Battery'],
-        createdAt: '2024-01-15'
-      },
-      {
-        id: 2,
-        title: 'Smart Fitness Watch',
-        description: 'Advanced fitness tracking with heart rate monitoring',
-        brand: 'FitTech',
-        mrp: 199.99,
-        discount: 15,
-        rating: 4.3,
-        images: ['/api/placeholder/200/200'],
-        features: ['Heart Rate Monitor', 'GPS', 'Waterproof'],
-        createdAt: '2024-01-10'
-      },
-      {
-        id: 3,
-        title: 'Gaming Mechanical Keyboard',
-        description: 'RGB mechanical keyboard for gaming enthusiasts',
-        brand: 'GameGear',
-        mrp: 159.99,
-        discount: 25,
-        rating: 4.7,
-        images: ['/api/placeholder/200/200'],
-        features: ['RGB Lighting', 'Mechanical Switches', 'Programmable Keys'],
-        createdAt: '2024-01-08'
-      },
-      {
-        id: 4,
-        title: 'Wireless Bluetooth Speaker',
-        description: 'Portable speaker with excellent sound quality',
-        brand: 'SoundWave',
-        mrp: 89.99,
-        discount: 10,
-        rating: 4.2,
-        images: ['/api/placeholder/200/200'],
-        features: ['Bluetooth 5.0', 'Waterproof', '12hr Battery'],
-        createdAt: '2024-01-05'
-      }
-    ]
-    setProducts(mockProducts)
-    setFilteredProducts(mockProducts)
+    fetchProducts()
   }, [])
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true)
+      setError('')
+      const response = await productService.getProducts()
+      
+      if (response.success) {
+        setProducts(response.data.products)
+        setFilteredProducts(response.data.products)
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error)
+      setError(error.message || 'Failed to fetch products')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     const filtered = products.filter(product =>
@@ -71,10 +42,27 @@ const Products = () => {
     setFilteredProducts(filtered)
   }, [searchTerm, products])
 
-  const handleDelete = (productId) => {
+  const handleDelete = async (productId) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
-      const updatedProducts = products.filter(product => product.id !== productId)
-      setProducts(updatedProducts)
+      try {
+        setDeleteLoading(productId)
+        const response = await productService.deleteProduct(productId)
+        
+        if (response.success) {
+          // Remove product from local state
+          const updatedProducts = products.filter(product => product._id !== productId)
+          setProducts(updatedProducts)
+          setFilteredProducts(updatedProducts.filter(product =>
+            product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            product.brand.toLowerCase().includes(searchTerm.toLowerCase())
+          ))
+        }
+      } catch (error) {
+        console.error('Error deleting product:', error)
+        alert('Failed to delete product: ' + error.message)
+      } finally {
+        setDeleteLoading('')
+      }
     }
   }
 
@@ -93,6 +81,53 @@ const Products = () => {
       )
     }
     return stars
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-button mx-auto mb-4"></div>
+          <p className="text-text">Loading products...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-headers">Products</h1>
+            <p className="text-text">Manage your product inventory</p>
+          </div>
+          <Link
+            to="/admin/products/add"
+            className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 bg-button text-white text-sm font-medium rounded-md hover:bg-button/90 transition-colors duration-200"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Product
+          </Link>
+        </div>
+        
+        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <div className="flex">
+            <AlertCircle className="h-5 w-5 text-red-400" />
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">Error loading products</h3>
+              <p className="mt-1 text-sm text-red-700">{error}</p>
+              <button
+                onClick={fetchProducts}
+                className="mt-2 text-sm bg-red-100 text-red-800 px-3 py-1 rounded hover:bg-red-200"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -128,11 +163,16 @@ const Products = () => {
           <div className="flex gap-2">
             <select className="px-4 py-2 border border-background rounded-md focus:ring-2 focus:ring-button focus:border-transparent text-text">
               <option value="">All Brands</option>
-              <option value="AudioTech">AudioTech</option>
-              <option value="FitTech">FitTech</option>
-              <option value="GameGear">GameGear</option>
-              <option value="SoundWave">SoundWave</option>
+              {[...new Set(products.map(p => p.brand))].map(brand => (
+                <option key={brand} value={brand}>{brand}</option>
+              ))}
             </select>
+            <button
+              onClick={fetchProducts}
+              className="px-4 py-2 bg-button text-white rounded-md hover:bg-button/90"
+            >
+              Refresh
+            </button>
           </div>
         </div>
       </div>
@@ -140,13 +180,22 @@ const Products = () => {
       {/* Products Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredProducts.map((product) => (
-          <div key={product.id} className="bg-white rounded-lg shadow-sm border border-background overflow-hidden">
+          <div key={product._id} className="bg-white rounded-lg shadow-sm border border-background overflow-hidden">
             <div className="aspect-w-16 aspect-h-12 bg-background/20">
-              <img
-                src={product.images[0]}
-                alt={product.title}
-                className="w-full h-48 object-cover"
-              />
+              {product.images && product.images.length > 0 ? (
+                <img
+                  src={product.images[0]}
+                  alt={product.title}
+                  className="w-full h-48 object-cover"
+                  onError={(e) => {
+                    e.target.src = '/api/placeholder/400/400'
+                  }}
+                />
+              ) : (
+                <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
+                  <Package className="h-12 w-12 text-gray-400" />
+                </div>
+              )}
             </div>
             <div className="p-6">
               <div className="flex items-start justify-between mb-2">
@@ -167,11 +216,11 @@ const Products = () => {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-2">
                   <span className="text-lg font-bold text-headers">
-                    ${calculateDiscountedPrice(product.mrp, product.discount)}
+                  ₹{calculateDiscountedPrice(product.mrp, product.discount)}
                   </span>
                   {product.discount > 0 && (
                     <>
-                      <span className="text-sm text-text/60 line-through">${product.mrp}</span>
+                      <span className="text-sm text-text/60 line-through">₹{product.mrp}</span>
                       <span className="text-sm text-green-600 font-medium">-{product.discount}%</span>
                     </>
                   )}
@@ -179,7 +228,7 @@ const Products = () => {
               </div>
 
               <div className="flex flex-wrap gap-1 mb-4">
-                {product.features.slice(0, 2).map((feature, index) => (
+                {product.features && product.features.slice(0, 2).map((feature, index) => (
                   <span
                     key={index}
                     className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-background text-text"
@@ -187,7 +236,7 @@ const Products = () => {
                     {feature}
                   </span>
                 ))}
-                {product.features.length > 2 && (
+                {product.features && product.features.length > 2 && (
                   <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-background text-text">
                     +{product.features.length - 2} more
                   </span>
@@ -197,68 +246,89 @@ const Products = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Link
-                    to={`/admin/products/edit/${product.id}`}
+                    to={`/admin/products/edit/${product._id}`}
                     className="inline-flex items-center px-3 py-1.5 text-sm text-headers hover:bg-background/50 rounded-md transition-colors duration-200"
                   >
                     <Edit className="h-4 w-4 mr-1" />
                     Edit
                   </Link>
                   <button
-                    onClick={() => handleDelete(product.id)}
-                    className="inline-flex items-center px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors duration-200"
+                    onClick={() => handleDelete(product._id)}
+                    disabled={deleteLoading === product._id}
+                    className="inline-flex items-center px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors duration-200 disabled:opacity-50"
                   >
-                    <Trash2 className="h-4 w-4 mr-1" />
+                    {deleteLoading === product._id ? (
+                      <div className="h-4 w-4 mr-1 animate-spin rounded-full border-2 border-red-600 border-t-transparent"></div>
+                    ) : (
+                      <Trash2 className="h-4 w-4 mr-1" />
+                    )}
                     Delete
                   </button>
                 </div>
-                <button className="inline-flex items-center px-3 py-1.5 text-sm text-text hover:bg-background/50 rounded-md transition-colors duration-200">
+                <Link 
+                  to={`/products/${product._id}`}
+                  className="inline-flex items-center px-3 py-1.5 text-sm text-text hover:bg-background/50 rounded-md transition-colors duration-200"
+                >
                   <Eye className="h-4 w-4 mr-1" />
                   View
-                </button>
+                </Link>
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {filteredProducts.length === 0 && (
+      {filteredProducts.length === 0 && !loading && (
         <div className="text-center py-12">
           <div className="text-text/70">
             <Package className="h-12 w-12 mx-auto mb-4" />
             <p className="text-lg font-medium">No products found</p>
-            <p className="text-sm">Try adjusting your search criteria</p>
+            <p className="text-sm">
+              {searchTerm ? 'Try adjusting your search criteria' : 'Start by adding your first product'}
+            </p>
+            {!searchTerm && (
+              <Link
+                to="/admin/products/add"
+                className="mt-4 inline-flex items-center px-4 py-2 bg-button text-white text-sm font-medium rounded-md hover:bg-button/90 transition-colors duration-200"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Your First Product
+              </Link>
+            )}
           </div>
         </div>
       )}
 
       {/* Stats */}
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-background">
-        <h3 className="text-lg font-semibold text-headers mb-4">Product Statistics</h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-headers">{products.length}</div>
-            <div className="text-sm text-text/80">Total Products</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-button">
-              {products.filter(p => p.discount > 0).length}
+      {products.length > 0 && (
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-background">
+          <h3 className="text-lg font-semibold text-headers mb-4">Product Statistics</h3>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-headers">{products.length}</div>
+              <div className="text-sm text-text/80">Total Products</div>
             </div>
-            <div className="text-sm text-text/80">On Sale</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-headers">
-              {products.filter(p => p.rating >= 4.5).length}
+            <div className="text-center">
+              <div className="text-2xl font-bold text-button">
+                {products.filter(p => p.discount > 0).length}
+              </div>
+              <div className="text-sm text-text/80">On Sale</div>
             </div>
-            <div className="text-sm text-text/80">High Rated (4.5+)</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-button">
-              {new Set(products.map(p => p.brand)).size}
+            <div className="text-center">
+              <div className="text-2xl font-bold text-headers">
+                {products.filter(p => p.rating >= 4.5).length}
+              </div>
+              <div className="text-sm text-text/80">High Rated (4.5+)</div>
             </div>
-            <div className="text-sm text-text/80">Brands</div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-button">
+                {new Set(products.map(p => p.brand)).size}
+              </div>
+              <div className="text-sm text-text/80">Brands</div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
