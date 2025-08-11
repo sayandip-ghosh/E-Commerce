@@ -1,7 +1,7 @@
 import axios from 'axios';
 import authService from './authService';
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 
 class ProductService {
   // Get auth headers for admin routes
@@ -36,7 +36,7 @@ class ProductService {
     }
   }
 
-  // Create new product (Admin only)
+  // Create new product (Admin only) - Use admin route
   async createProduct(productData) {
     try {
       if (!authService.isAuthenticated() || !authService.isAdmin()) {
@@ -45,7 +45,7 @@ class ProductService {
 
       console.log('Sending product data:', productData); // Debug log
 
-      const response = await axios.post(`${API_BASE_URL}/products`, productData, {
+      const response = await axios.post(`${API_BASE_URL}/admin/products`, productData, {
         headers: this.getAuthHeaders()
       });
       return response.data;
@@ -62,7 +62,7 @@ class ProductService {
     }
   }
 
-  // Update product (Admin only)
+  // Update product (Admin only) - Use admin route
   async updateProduct(id, productData) {
     try {
       if (!authService.isAuthenticated() || !authService.isAdmin()) {
@@ -71,7 +71,7 @@ class ProductService {
 
       console.log('Updating product data:', productData); // Debug log
 
-      const response = await axios.put(`${API_BASE_URL}/products/${id}`, productData, {
+      const response = await axios.put(`${API_BASE_URL}/admin/products/${id}`, productData, {
         headers: this.getAuthHeaders()
       });
       return response.data;
@@ -88,14 +88,14 @@ class ProductService {
     }
   }
 
-  // Delete product (Admin only)
+  // Delete product (Admin only) - Use admin route
   async deleteProduct(id) {
     try {
       if (!authService.isAuthenticated() || !authService.isAdmin()) {
         throw new Error('Admin authentication required');
       }
 
-      const response = await axios.delete(`${API_BASE_URL}/products/${id}`, {
+      const response = await axios.delete(`${API_BASE_URL}/admin/products/${id}`, {
         headers: this.getAuthHeaders()
       });
       return response.data;
@@ -200,6 +200,31 @@ class ProductService {
       return await this.getProducts(queryParams);
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to fetch products by price range');
+    }
+  }
+
+  // Upload images using axios
+  async uploadImages(imageFiles) {
+    try {
+      if (!authService.isAuthenticated() || !authService.isAdmin()) {
+        throw new Error('Admin authentication required');
+      }
+
+      const formData = new FormData();
+      imageFiles.forEach(file => {
+        formData.append('images', file);
+      });
+
+      const response = await axios.post(`${API_BASE_URL}/admin/upload-images`, formData, {
+        headers: {
+          'Authorization': `Bearer ${authService.getToken()}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to upload images');
     }
   }
 }

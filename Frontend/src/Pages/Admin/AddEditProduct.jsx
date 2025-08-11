@@ -19,10 +19,13 @@ const AddEditProduct = () => {
     images: ['', '', '', '']
   })
 
+  const [imageFiles, setImageFiles] = useState([null, null, null, null])
+  const [imagePreviewUrls, setImagePreviewUrls] = useState(['', '', '', ''])
+  const [uploadingImages, setUploadingImages] = useState(false)
+
   const [errors, setErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Replace mock data with real API call
   useEffect(() => {
     if (isEditing) {
       fetchProduct();
@@ -47,7 +50,6 @@ const AddEditProduct = () => {
       ...prev,
       [name]: value
     }))
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -56,14 +58,98 @@ const AddEditProduct = () => {
     }
   }
 
-  const handleImageChange = (index, value) => {
-    const newImages = [...formData.images]
-    newImages[index] = value
+  const handleImageFileChange = async (index, file) => {
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setErrors(prev => ({
+        ...prev,
+        [`image${index}`]: 'Please select a valid image file'
+      }));
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setErrors(prev => ({
+        ...prev,
+        [`image${index}`]: 'Image size must be less than 10MB'
+      }));
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    const newImageFiles = [...imageFiles];
+    const newPreviewUrls = [...imagePreviewUrls];
+    newImageFiles[index] = file;
+    newPreviewUrls[index] = previewUrl;
+
+    setImageFiles(newImageFiles);
+    setImagePreviewUrls(newPreviewUrls);
+
+    if (errors[`image${index}`]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[`image${index}`];
+        return newErrors;
+      });
+    }
+  };
+
+  const removeImage = (index) => {
+    const newImageFiles = [...imageFiles];
+    const newPreviewUrls = [...imagePreviewUrls];
+    const newImages = [...formData.images];
+
+    if (newPreviewUrls[index] && newPreviewUrls[index].startsWith('blob:')) {
+      URL.revokeObjectURL(newPreviewUrls[index]);
+    }
+
+    newImageFiles[index] = null;
+    newPreviewUrls[index] = '';
+    newImages[index] = '';
+
+    setImageFiles(newImageFiles);
+    setImagePreviewUrls(newPreviewUrls);
     setFormData(prev => ({
       ...prev,
       images: newImages
-    }))
-  }
+    }));
+  };
+
+  const uploadImages = async () => {
+    const filesToUpload = imageFiles.filter(file => file !== null);
+
+    if (filesToUpload.length === 0) {
+      return formData.images;
+    }
+
+    setUploadingImages(true);
+
+    try {
+      const result = await productService.uploadImages(filesToUpload);
+
+      if (!result.success) {
+        throw new Error(result.message);
+      }
+
+      const uploadedUrls = result.data.images;
+      const finalImages = [...formData.images];
+      let uploadIndex = 0;
+
+      imageFiles.forEach((file, index) => {
+        if (file !== null) {
+          finalImages[index] = uploadedUrls[uploadIndex];
+          uploadIndex++;
+        }
+      });
+
+      return finalImages;
+    } catch (error) {
+      throw new Error(`Image upload failed: ${error.message}`);
+    } finally {
+      setUploadingImages(false);
+    }
+  };
 
   const handleFeatureChange = (index, value) => {
     const newFeatures = [...formData.features]
@@ -135,10 +221,11 @@ const AddEditProduct = () => {
     }
 
     setIsSubmitting(true)
-    setErrors({}) // Clear previous errors
-    
+    setErrors({})
+
     try {
-      // Ensure proper data types and filter empty values
+      const imageUrls = await uploadImages();
+
       const productData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
@@ -147,16 +234,15 @@ const AddEditProduct = () => {
         discount: Number(formData.discount) || 0,
         rating: parseFloat(formData.rating) || 0,
         features: formData.features.filter(feature => feature.trim()).map(f => f.trim()),
-        images: formData.images.filter(image => image.trim()).map(i => i.trim())
+        images: imageUrls.filter(image => image.trim()).map(i => i.trim())
       };
 
-      // Ensure at least one feature exists
       if (productData.features.length === 0) {
         setErrors({ features: 'At least one feature is required' });
         return;
       }
 
-      console.log('Submitting product data:', productData); // Debug log
+      console.log('Submitting product data:', productData);
 
       let response;
       if (isEditing) {
@@ -170,8 +256,7 @@ const AddEditProduct = () => {
       }
     } catch (error) {
       console.error('Error saving product:', error);
-      
-      // Handle specific error cases
+
       if (error.message.includes('title already exists')) {
         setErrors({ 
           title: 'A product with this title already exists. Please use a different title.',
@@ -213,7 +298,6 @@ const AddEditProduct = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center space-x-4">
         <Link
           to="/admin/products"
@@ -233,7 +317,6 @@ const AddEditProduct = () => {
         </p>
       </div>
 
-      {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
         {errors.general && (
           <div className="bg-red-50 border border-red-200 rounded-md p-4">
@@ -242,7 +325,6 @@ const AddEditProduct = () => {
         )}
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Information */}
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
               <h2 className="text-lg font-semibold text-headers mb-4">Basic Information</h2>
@@ -301,7 +383,6 @@ const AddEditProduct = () => {
               </div>
             </div>
 
-            {/* Features */}
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
               <h2 className="text-lg font-semibold text-headers mb-4">Features</h2>
               
@@ -339,7 +420,6 @@ const AddEditProduct = () => {
               </div>
             </div>
 
-            {/* Images */}
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
               <h2 className="text-lg font-semibold text-headers mb-4">Product Images</h2>
               
@@ -350,43 +430,52 @@ const AddEditProduct = () => {
                       Image {index + 1} {index === 0 && '*'}
                     </label>
                     <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                      {image ? (
+                      {(imagePreviewUrls[index] || image) ? (
                         <div className="space-y-2">
-                          <img
-                            src={image}
-                            alt={`Product ${index + 1}`}
-                            className="w-full h-32 object-cover rounded-md"
-                          />
+                          <div className="relative">
+                            <img
+                              src={imagePreviewUrls[index] || image}
+                              alt={`Product ${index + 1}`}
+                              className="w-full h-32 object-cover rounded-md"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeImage(index)}
+                              className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
                           <input
-                            type="url"
-                            value={image}
-                            onChange={(e) => handleImageChange(index, e.target.value)}
-                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
-                            placeholder="Image URL"
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handleImageFileChange(index, e.target.files[0])}
+                            className="w-full text-sm text-gray-500 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                           />
                         </div>
                       ) : (
                         <div className="space-y-2">
                           <Upload className="h-8 w-8 text-gray-400 mx-auto" />
+                          <p className="text-sm text-gray-500">Upload Image</p>
                           <input
-                            type="url"
-                            value={image}
-                            onChange={(e) => handleImageChange(index, e.target.value)}
-                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
-                            placeholder="Enter image URL"
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handleImageFileChange(index, e.target.files[0])}
+                            className="w-full text-sm text-gray-500 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                           />
                         </div>
                       )}
                     </div>
+                    {errors[`image${index}`] && (
+                      <p className="text-red-600 text-sm">{errors[`image${index}`]}</p>
+                    )}
                   </div>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-6">
-            {/* Pricing */}
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
               <h2 className="text-lg font-semibold text-headers mb-4">Pricing</h2>
               
@@ -442,7 +531,6 @@ const AddEditProduct = () => {
               </div>
             </div>
 
-            {/* Rating */}
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
               <h2 className="text-lg font-semibold text-headers mb-4">Rating</h2>
               
@@ -460,15 +548,14 @@ const AddEditProduct = () => {
               </div>
             </div>
 
-            {/* Actions */}
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
               <div className="space-y-3">
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || uploadingImages}
                   className="w-full px-4 py-2 bg-button text-white text-sm font-medium rounded-md hover:bg-button/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
                 >
-                  {isSubmitting ? 'Saving...' : (isEditing ? 'Update Product' : 'Create Product')}
+                  {uploadingImages ? 'Uploading Images...' : isSubmitting ? 'Saving...' : (isEditing ? 'Update Product' : 'Create Product')}
                 </button>
                 
                 <Link

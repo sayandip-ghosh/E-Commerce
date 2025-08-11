@@ -184,11 +184,11 @@ const Products = () => {
             <div className="aspect-w-16 aspect-h-12 bg-background/20">
               {product.images && product.images.length > 0 ? (
                 <img
-                  src={product.images[0]}
+                  src={product.images[0].startsWith('http') ? product.images[0] : `http://localhost:8000${product.images[0]}`}
                   alt={product.title}
                   className="w-full h-48 object-cover"
                   onError={(e) => {
-                    e.target.src = '/api/placeholder/400/400'
+                    e.target.src = 'https://via.placeholder.com/400x400/f0f0f0/666666?text=Product+Image'
                   }}
                 />
               ) : (

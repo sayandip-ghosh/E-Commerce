@@ -1,105 +1,71 @@
 const Product = require('../models/Product');
 const User = require('../models/User');
-const { uploadProductImages, deleteProductImage } = require('../middleware/imageUpload');
 
-// Dashboard Statistics
+// Dashboard Stats
 exports.getDashboardStats = async (req, res) => {
   try {
     const totalProducts = await Product.countDocuments();
-    const totalUsers = await User.countDocuments();
-    const featuredProducts = await Product.countDocuments({ isFeatured: true });
-    const newArrivals = await Product.countDocuments({ isNewArrival: true });
-    const bestSellers = await Product.countDocuments({ isBestSeller: true });
+    const totalUsers = await User.countDocuments({ role: 'user' });
     
-    // Get recent products
-    const recentProducts = await Product.find()
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .select('name price images createdAt');
-
-    // Get recent users
-    const recentUsers = await User.find()
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .select('name email createdAt');
-
     res.json({
       success: true,
       data: {
-        stats: {
-          totalProducts,
-          totalUsers,
-          featuredProducts,
-          newArrivals,
-          bestSellers
-        },
-        recentProducts,
-        recentUsers
+        totalProducts,
+        totalUsers
       }
     });
   } catch (error) {
-    console.error('Error getting dashboard stats:', error);
     res.status(500).json({
       success: false,
-      message: 'Error fetching dashboard statistics'
+      message: 'Error fetching dashboard stats',
+      error: error.message
     });
   }
 };
 
 // Product Management
+exports.getProducts = async (req, res) => {
+  try {
+    const products = await Product.find().sort({ createdAt: -1 });
+    res.json({
+      success: true,
+      data: products
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching products',
+      error: error.message
+    });
+  }
+};
+
 exports.createProduct = async (req, res) => {
   try {
-    const {
-      name,
-      description,
-      price,
-      compareAtPrice,
-      brand,
-      category,
-      features,
-      specifications,
-      stock,
-      isFeatured,
-      isNewArrival,
-      isBestSeller,
-      seo
-    } = req.body;
-
-    // Handle image uploads
-    let productImages = [];
+    // Handle uploaded images
+    let imageUrls = [];
     if (req.files && req.files.length > 0) {
-      productImages = await uploadProductImages(req.files);
+      imageUrls = req.files.map(file => `/uploads/products/${file.filename}`);
     }
 
-    const product = new Product({
-      name,
-      description,
-      price,
-      compareAtPrice,
-      brand,
-      category,
-      features,
-      specifications,
-      stock,
-      isFeatured,
-      isNewArrival,
-      isBestSeller,
-      seo,
-      images: productImages,
-      createdBy: req.user._id
-    });
+    const productData = {
+      ...req.body,
+      images: imageUrls.length > 0 ? imageUrls : req.body.images || []
+    };
 
+    const product = new Product(productData);
     await product.save();
 
     res.status(201).json({
       success: true,
-      data: product
+      data: product,
+      message: 'Product created successfully'
     });
   } catch (error) {
-    console.error('Error creating product:', error);
-    res.status(500).json({
+    res.status(400).json({
       success: false,
-      message: 'Error creating product'
+      message: 'Error creating product',
+      error: error.message
     });
   }
 };
@@ -107,29 +73,18 @@ exports.createProduct = async (req, res) => {
 exports.updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = { ...req.body };
     
-    // Handle image uploads if any
+    // Handle uploaded images
+    let updateData = { ...req.body };
     if (req.files && req.files.length > 0) {
-      const newImages = await uploadProductImages(req.files);
-      
-      // If replacing images, delete old ones first
-      if (updateData.replaceImages) {
-        const oldProduct = await Product.findById(id);
-        await Promise.all(oldProduct.images.map(image => deleteProductImage(image.url)));
-        updateData.images = newImages;
-      } else {
-        // Append new images to existing ones
-        const oldProduct = await Product.findById(id);
-        updateData.images = [...oldProduct.images, ...newImages];
-      }
+      const newImageUrls = req.files.map(file => `/uploads/products/${file.filename}`);
+      updateData.images = newImageUrls;
     }
 
-    const product = await Product.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true, runValidators: true }
-    );
+    const product = await Product.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true
+    });
 
     if (!product) {
       return res.status(404).json({
@@ -140,13 +95,14 @@ exports.updateProduct = async (req, res) => {
 
     res.json({
       success: true,
-      data: product
+      data: product,
+      message: 'Product updated successfully'
     });
   } catch (error) {
-    console.error('Error updating product:', error);
-    res.status(500).json({
+    res.status(400).json({
       success: false,
-      message: 'Error updating product'
+      message: 'Error updating product',
+      error: error.message
     });
   }
 };
@@ -154,8 +110,8 @@ exports.updateProduct = async (req, res) => {
 exports.deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    
-    const product = await Product.findById(id);
+    const product = await Product.findByIdAndDelete(id);
+
     if (!product) {
       return res.status(404).json({
         success: false,
@@ -163,79 +119,15 @@ exports.deleteProduct = async (req, res) => {
       });
     }
 
-    // Delete product images from storage
-    await Promise.all(product.images.map(image => deleteProductImage(image.url)));
-
-    // Delete product from database
-    await product.remove();
-
     res.json({
       success: true,
       message: 'Product deleted successfully'
     });
   } catch (error) {
-    console.error('Error deleting product:', error);
     res.status(500).json({
       success: false,
-      message: 'Error deleting product'
-    });
-  }
-};
-
-exports.getProducts = async (req, res) => {
-  try {
-    const {
-      page = 1,
-      limit = 10,
-      sort = '-createdAt',
-      search,
-      category,
-      brand,
-      minPrice,
-      maxPrice,
-      inStock
-    } = req.query;
-
-    const query = {};
-
-    // Apply filters
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
-      ];
-    }
-    if (category) query.category = category;
-    if (brand) query.brand = brand;
-    if (minPrice || maxPrice) {
-      query.price = {};
-      if (minPrice) query.price.$gte = Number(minPrice);
-      if (maxPrice) query.price.$lte = Number(maxPrice);
-    }
-    if (inStock === 'true') query.stock = { $gt: 0 };
-
-    const products = await Product.find(query)
-      .sort(sort)
-      .skip((page - 1) * limit)
-      .limit(Number(limit))
-      .populate('category', 'name');
-
-    const total = await Product.countDocuments(query);
-
-    res.json({
-      success: true,
-      data: {
-        products,
-        total,
-        page: Number(page),
-        pages: Math.ceil(total / limit)
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching products:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching products'
+      message: 'Error deleting product',
+      error: error.message
     });
   }
 };
@@ -243,47 +135,16 @@ exports.getProducts = async (req, res) => {
 // User Management
 exports.getUsers = async (req, res) => {
   try {
-    const {
-      page = 1,
-      limit = 10,
-      sort = '-createdAt',
-      search,
-      role
-    } = req.query;
-
-    const query = {};
-
-    // Apply filters
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } }
-      ];
-    }
-    if (role) query.role = role;
-
-    const users = await User.find(query)
-      .sort(sort)
-      .skip((page - 1) * limit)
-      .limit(Number(limit))
-      .select('-password');
-
-    const total = await User.countDocuments(query);
-
+    const users = await User.find({ role: 'user' }).select('-password').sort({ createdAt: -1 });
     res.json({
       success: true,
-      data: {
-        users,
-        total,
-        page: Number(page),
-        pages: Math.ceil(total / limit)
-      }
+      data: users
     });
   } catch (error) {
-    console.error('Error fetching users:', error);
     res.status(500).json({
       success: false,
-      message: 'Error fetching users'
+      message: 'Error fetching users',
+      error: error.message
     });
   }
 };
@@ -291,10 +152,7 @@ exports.getUsers = async (req, res) => {
 exports.getUserDetails = async (req, res) => {
   try {
     const { id } = req.params;
-    
-    const user = await User.findById(id)
-      .select('-password')
-      .populate('orders');
+    const user = await User.findById(id).select('-password');
 
     if (!user) {
       return res.status(404).json({
@@ -308,10 +166,10 @@ exports.getUserDetails = async (req, res) => {
       data: user
     });
   } catch (error) {
-    console.error('Error fetching user details:', error);
     res.status(500).json({
       success: false,
-      message: 'Error fetching user details'
+      message: 'Error fetching user details',
+      error: error.message
     });
   }
 };
@@ -319,16 +177,10 @@ exports.getUserDetails = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = req.body;
-
-    // Don't allow password updates through this route
-    delete updateData.password;
-
-    const user = await User.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true, runValidators: true }
-    ).select('-password');
+    const user = await User.findByIdAndUpdate(id, req.body, {
+      new: true,
+      runValidators: true
+    }).select('-password');
 
     if (!user) {
       return res.status(404).json({
@@ -339,13 +191,14 @@ exports.updateUser = async (req, res) => {
 
     res.json({
       success: true,
-      data: user
+      data: user,
+      message: 'User updated successfully'
     });
   } catch (error) {
-    console.error('Error updating user:', error);
-    res.status(500).json({
+    res.status(400).json({
       success: false,
-      message: 'Error updating user'
+      message: 'Error updating user',
+      error: error.message
     });
   }
 };
@@ -353,8 +206,8 @@ exports.updateUser = async (req, res) => {
 exports.deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
-    
-    const user = await User.findById(id);
+    const user = await User.findByIdAndDelete(id);
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -362,17 +215,15 @@ exports.deleteUser = async (req, res) => {
       });
     }
 
-    await user.remove();
-
     res.json({
       success: true,
       message: 'User deleted successfully'
     });
   } catch (error) {
-    console.error('Error deleting user:', error);
     res.status(500).json({
       success: false,
-      message: 'Error deleting user'
+      message: 'Error deleting user',
+      error: error.message
     });
   }
 };
