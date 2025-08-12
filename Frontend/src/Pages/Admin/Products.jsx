@@ -140,7 +140,7 @@ const Products = () => {
         </div>
         <Link
           to="/admin/products/add"
-          className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 bg-button text-white text-sm font-medium rounded-md hover:bg-button/90 transition-colors duration-200"
+         className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 bg-button text-white text-sm font-medium rounded-md hover:bg-button/90 transition-colors duration-200"
         >
           <Plus className="h-4 w-4 mr-2" />
           Add Product
@@ -184,7 +184,7 @@ const Products = () => {
             <div className="aspect-w-16 aspect-h-12 bg-background/20">
               {product.images && product.images.length > 0 ? (
                 <img
-                  src={product.images[0].startsWith('http') ? product.images[0] : `http://localhost:8000${product.images[0]}`}
+                  src={product.images[0].startsWith('http') ? product.images[0] : `https://api.sarkarradiohouse.in${product.images[0]}`}
                   alt={product.title}
                   className="w-full h-48 object-cover"
                   onError={(e) => {
