@@ -58,10 +58,21 @@ const getProducts = async (req, res) => {
 
     const total = await Product.countDocuments(queryObj);
 
+    // Transform products data to match frontend expectations
+    const transformedProducts = products.map(product => ({
+      ...product.toObject(),
+      id: product._id,
+      name: product.title,
+      price: `₹${product.salePrice.toFixed(0)}`,
+      originalPrice: `₹${product.mrp.toFixed(0)}`,
+      discount: `${product.discount}%`,
+      category: product.category?.name || 'General'
+    }));
+
     res.json({
       success: true,
       data: {
-        products,
+        products: transformedProducts,
         pagination: {
           currentPage: parseInt(page),
           totalPages: Math.ceil(total / limit),
@@ -101,9 +112,21 @@ const getProduct = async (req, res) => {
     product.views += 1;
     await product.save();
 
+    // Transform product data to match frontend expectations
+    const transformedProduct = {
+      ...product.toObject(),
+      id: product._id,
+      name: product.title,
+      price: `₹${product.salePrice.toFixed(0)}`,
+      originalPrice: `₹${product.mrp.toFixed(0)}`,
+      discount: `${product.discount}%`,
+      category: product.category?.name || 'General',
+      reviews: [] // TODO: Implement reviews system
+    };
+
     res.json({
       success: true,
-      data: product
+      data: transformedProduct
     });
 
   } catch (error) {
@@ -199,10 +222,21 @@ const createProduct = async (req, res) => {
       .populate('category', 'name')
       .populate('createdBy', 'name email');
 
+    // Transform product data to match frontend expectations
+    const transformedProduct = {
+      ...populatedProduct.toObject(),
+      id: populatedProduct._id,
+      name: populatedProduct.title,
+      price: `₹${populatedProduct.salePrice.toFixed(0)}`,
+      originalPrice: `₹${populatedProduct.mrp.toFixed(0)}`,
+      discount: `${populatedProduct.discount}%`,
+      category: populatedProduct.category?.name || 'General'
+    };
+
     res.status(201).json({
       success: true,
       message: 'Product created successfully',
-      data: populatedProduct
+      data: transformedProduct
     });
 
   } catch (error) {
@@ -297,10 +331,21 @@ const updateProduct = async (req, res) => {
       }
     ).populate('category', 'name').populate('createdBy', 'name email');
 
+    // Transform product data to match frontend expectations
+    const transformedProduct = {
+      ...product.toObject(),
+      id: product._id,
+      name: product.title,
+      price: `₹${product.salePrice.toFixed(0)}`,
+      originalPrice: `₹${product.mrp.toFixed(0)}`,
+      discount: `${product.discount}%`,
+      category: product.category?.name || 'General'
+    };
+
     res.json({
       success: true,
       message: 'Product updated successfully',
-      data: product
+      data: transformedProduct
     });
 
   } catch (error) {
@@ -386,9 +431,20 @@ const getFeaturedProducts = async (req, res) => {
       .sort('-createdAt')
       .limit(8);
 
+    // Transform products data to match frontend expectations
+    const transformedProducts = products.map(product => ({
+      ...product.toObject(),
+      id: product._id,
+      name: product.title,
+      price: `₹${product.salePrice.toFixed(0)}`,
+      originalPrice: `₹${product.mrp.toFixed(0)}`,
+      discount: `${product.discount}%`,
+      category: product.category?.name || 'General'
+    }));
+
     res.json({
       success: true,
-      data: products
+      data: transformedProducts
     });
 
   } catch (error) {
@@ -413,9 +469,20 @@ const getNewArrivals = async (req, res) => {
       .sort('-createdAt')
       .limit(8);
 
+    // Transform products data to match frontend expectations
+    const transformedProducts = products.map(product => ({
+      ...product.toObject(),
+      id: product._id,
+      name: product.title,
+      price: `₹${product.salePrice.toFixed(0)}`,
+      originalPrice: `₹${product.mrp.toFixed(0)}`,
+      discount: `${product.discount}%`,
+      category: product.category?.name || 'General'
+    }));
+
     res.json({
       success: true,
-      data: products
+      data: transformedProducts
     });
 
   } catch (error) {
@@ -440,9 +507,20 @@ const getBestSellers = async (req, res) => {
       .sort('-soldCount')
       .limit(8);
 
+    // Transform products data to match frontend expectations
+    const transformedProducts = products.map(product => ({
+      ...product.toObject(),
+      id: product._id,
+      name: product.title,
+      price: `₹${product.salePrice.toFixed(0)}`,
+      originalPrice: `₹${product.mrp.toFixed(0)}`,
+      discount: `${product.discount}%`,
+      category: product.category?.name || 'General'
+    }));
+
     res.json({
       success: true,
-      data: products
+      data: transformedProducts
     });
 
   } catch (error) {
@@ -450,6 +528,44 @@ const getBestSellers = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error getting best sellers'
+    });
+  }
+};
+
+// @desc    Get deals (products with discounts)
+// @route   GET /api/products/deals
+// @access  Public
+const getDeals = async (req, res) => {
+  try {
+    const products = await Product.find({ 
+      isActive: true, 
+      discount: { $gt: 0 } 
+    })
+      .populate('category', 'name')
+      .sort('-discount')
+      .limit(8);
+
+    // Transform products data to match frontend expectations
+    const transformedProducts = products.map(product => ({
+      ...product.toObject(),
+      id: product._id,
+      name: product.title,
+      price: `₹${product.salePrice.toFixed(0)}`,
+      originalPrice: `₹${product.mrp.toFixed(0)}`,
+      discount: `${product.discount}%`,
+      category: product.category?.name || 'General'
+    }));
+
+    res.json({
+      success: true,
+      data: transformedProducts
+    });
+
+  } catch (error) {
+    console.error('Get deals error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error getting deals'
     });
   }
 };
@@ -495,5 +611,6 @@ module.exports = {
   getFeaturedProducts,
   getNewArrivals,
   getBestSellers,
+  getDeals,
   toggleFeature
 };

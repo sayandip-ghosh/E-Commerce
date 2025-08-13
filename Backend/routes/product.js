@@ -11,7 +11,8 @@ const {
   getFeaturedProducts,
   getNewArrivals,
   getBestSellers,
-  toggleFeature
+  toggleFeature,
+  getDeals
 } = require('../controllers/product');
 
 const router = express.Router();
@@ -21,6 +22,7 @@ router.get('/', getProducts);
 router.get('/featured', getFeaturedProducts);
 router.get('/new-arrivals', getNewArrivals);
 router.get('/best-sellers', getBestSellers);
+router.get('/deals', getDeals);
 router.get('/:id', getProduct);
 
 // Admin protected routes - Create Product

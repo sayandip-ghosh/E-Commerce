@@ -134,6 +134,16 @@ class ProductService {
     }
   }
 
+  // Get deals (products with discounts)
+  async getDeals() {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/products/deals`);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to fetch deals');
+    }
+  }
+
   // Toggle product feature status (Admin only)
   async toggleFeature(id) {
     try {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FaShoppingCart, FaHeart, FaStar, FaRegStar, FaShare, FaTruck, FaShieldAlt, FaUndo, FaCheck } from "react-icons/fa";
 import { TrendingUp, ArrowLeft } from "lucide-react";
 import { useParams, NavLink } from "react-router-dom";
+import productService from "../../../services/productService";
 
 const BestSellerDetail = () => {
   const { id } = useParams();
@@ -13,111 +14,35 @@ const BestSellerDetail = () => {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [showReviews, setShowReviews] = useState(false);
-
-  // Mock data - Replace with API call
-  const mockProducts = {
-    1: {
-      id: 1,
-      name: "Bajaj Mixer Grinder",
-      price: "₹3,999",
-      originalPrice: "₹4,999",
-      discount: "20%",
-      images: [
-        "https://images.unsplash.com/photo-1600585152220-90363fe7e115?auto=format&fit=crop&w=600&q=80",
-        "https://images.unsplash.com/photo-1600585152220-90363fe7e115?auto=format&fit=crop&w=600&q=80",
-        "https://images.unsplash.com/photo-1600585152220-90363fe7e115?auto=format&fit=crop&w=600&q=80"
-      ],
-      specs: "750W, 3 Jars",
-      rating: 4.7,
-      reviews: [
-        {
-          id: 1,
-          user: "Priya S.",
-          rating: 5,
-          date: "2024-01-15",
-          title: "Excellent product!",
-          comment: "This mixer grinder is amazing! Very powerful and efficient. The jars are sturdy and well-built."
-        },
-        {
-          id: 2,
-          user: "Rahul M.",
-          rating: 4,
-          date: "2024-01-10",
-          title: "Good value for money",
-          comment: "Works great for daily use. A bit noisy but gets the job done perfectly."
-        }
-      ],
-      soldCount: "8.2k",
-      category: "Water & Kitchen",
-      stock: 45,
-      description: "Experience superior grinding performance with this powerful 750W mixer grinder. Perfect for Indian cooking needs with 3 versatile jars and stainless steel blades.",
-      features: [
-        "750W Powerful Motor",
-        "3 Stainless Steel Jars",
-        "Multi-function Blades",
-        "Overload Protection",
-        "2-Year Warranty",
-        "Safety Lock System",
-        "Anti-skid Feet",
-        "Easy Clean Design"
-      ],
-      specifications: {
-        "Brand": "Bajaj",
-        "Model": "GX-750",
-        "Power": "750 Watts",
-        "Jars": "3 (1.5L, 1L, 0.3L)",
-        "Speed": "3 Speed Control",
-        "Material": "Stainless Steel",
-        "Warranty": "2 Years"
-      },
-      relatedProducts: [
-        {
-          id: 2,
-          name: "Voltas AC",
-          price: "₹34,999",
-          originalPrice: "₹39,999",
-          discount: "12%",
-          image: "https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=400&q=80",
-          soldCount: "5.8k"
-        },
-        {
-          id: 3,
-          name: "Tata Sky DTH",
-          price: "₹2,999",
-          originalPrice: "₹3,499",
-          discount: "14%",
-          image: "https://images.unsplash.com/photo-1593784991095-a205069470b6?auto=format&fit=crop&w=400&q=80",
-          soldCount: "4.5k"
-        }
-      ]
-    },
-    // Add more products here...
-  };
+  const [showReviews] = useState(false);
 
   // Load product data
   useEffect(() => {
     const loadProduct = async () => {
       try {
         setLoading(true);
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        setError(null);
         
-        const productData = mockProducts[id];
-        if (productData) {
-          setProduct(productData);
-          setError(null);
+        // Fetch real product data from API
+        const productData = await productService.getProduct(id);
+        console.log('Product data received:', productData); // Debug log
+        
+        if (productData && productData.data) {
+          setProduct(productData.data);
         } else {
-          setError("Product not found");
+          setError("Invalid product data received");
         }
       } catch (err) {
-        setError("Failed to load product details. Please try again.");
+        console.error('Error loading product:', err);
+        setError(err.message || "Failed to load product details. Please try again.");
       } finally {
         setLoading(false);
       }
     };
 
-    loadProduct();
+    if (id) {
+      loadProduct();
+    }
   }, [id]);
 
   // Helper functions
@@ -283,20 +208,26 @@ const BestSellerDetail = () => {
             {/* Description */}
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Description</h3>
-              <p className="text-gray-600 leading-relaxed">{product.description}</p>
+              <p className="text-gray-600 leading-relaxed">
+                {product.description || "No description available for this product."}
+              </p>
             </div>
 
             {/* Features */}
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">Key Features</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {product.features.map((feature, index) => (
-                  <div key={index} className="flex items-center space-x-2">
-                    <FaCheck className="w-4 h-4 text-green-500" />
-                    <span className="text-gray-600">{feature}</span>
-                  </div>
-                ))}
-              </div>
+              {product.features && product.features.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {product.features.map((feature, index) => (
+                    <div key={index} className="flex items-center space-x-2">
+                      <FaCheck className="w-4 h-4 text-blue-500" />
+                      <span className="text-gray-600">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500">No features available for this product.</p>
+              )}
             </div>
 
             {/* Quantity */}

@@ -1,12 +1,35 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FaShoppingCart, FaHeart, FaStar, FaRegStar, FaEye, FaShare } from "react-icons/fa";
-import { Clock, Zap } from "lucide-react";
+import { Zap, Sparkles } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import productService from "../../../services/productService";
 
-const TodaysDeal = ({ deals }) => {
+const TodaysDeal = () => {
   const [hoveredCard, setHoveredCard] = useState(null);
   const [favorites, setFavorites] = useState(new Set());
   const [quickView, setQuickView] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchDeals = async () => {
+      try {
+        setLoading(true);
+        const response = await productService.getProducts();
+        setProducts(response.data?.products || response.products || []);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        setError(err.message);
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDeals();
+  }, []);
 
   const toggleFavorite = (id) => {
     const newFavorites = new Set(favorites);
@@ -38,7 +61,7 @@ const TodaysDeal = ({ deals }) => {
         <div className="text-center mb-12 animate-fade-in">
           <div className="flex items-center justify-center space-x-3 mb-4">
             <div className="p-3 bg-gradient-to-r from-red-400 to-orange-500 rounded-full shadow-lg">
-              <Clock className="w-6 h-6 text-white" />
+              <Sparkles className="w-6 h-6 text-white" />
             </div>
             <h2 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
               Today's Deals
@@ -51,8 +74,35 @@ const TodaysDeal = ({ deals }) => {
 
         {/* Deals Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-          {deals && deals.length > 0 ? (
-            deals.map((deal, index) => (
+          {loading ? (
+            <div className="col-span-full text-center py-20 animate-fade-in">
+              <div className="inline-block p-6 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full mb-6 shadow-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Loading Deals...</h3>
+              <p className="text-gray-600 max-w-md mx-auto text-lg leading-relaxed">
+                We're fetching the latest deals for you. Please wait a moment.
+              </p>
+            </div>
+          ) : error ? (
+            <div className="col-span-full text-center py-20 animate-fade-in">
+              <div className="inline-block p-6 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full mb-6 shadow-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Error: {error}</h3>
+              <p className="text-gray-600 max-w-md mx-auto text-lg leading-relaxed">
+                Failed to fetch deals. Please try again later.
+              </p>
+              <button className="mt-6 px-8 py-3 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-full font-semibold hover:from-red-700 hover:to-orange-700 transition-all duration-300 transform hover:scale-105 shadow-lg">
+                Retry
+              </button>
+            </div>
+          ) : products && products.length > 0 ? (
+            products.map((deal, index) => (
               <div
                 key={deal.id}
                 className={`group bg-white rounded-2xl shadow-lg overflow-hidden transition-all duration-500 transform hover:-translate-y-4 hover:shadow-2xl border border-gray-100 relative card-hover animate-fade-in flex flex-col cursor-pointer`}
@@ -159,7 +209,7 @@ const TodaysDeal = ({ deals }) => {
 
                     {/* Timer */}
                     <div className="flex items-center justify-center space-x-2 text-red-600 text-sm font-semibold bg-red-50 px-3 py-2 rounded-lg mb-4">
-                      <Clock className="w-4 h-4" />
+                      <Sparkles className="w-4 h-4" />
                       <span>Time left: {deal.timeLeft}</span>
                     </div>
 

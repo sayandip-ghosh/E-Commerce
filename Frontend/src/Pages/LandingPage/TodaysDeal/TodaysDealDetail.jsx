@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FaShoppingCart, FaHeart, FaStar, FaShare, FaTruck, FaShieldAlt, FaUndo, FaCheck, FaClock } from "react-icons/fa";
 import { Star, ArrowLeft, Timer } from "lucide-react";
 import { useParams, NavLink } from "react-router-dom";
+import productService from "../../../services/productService";
 
 const TodaysDealDetail = () => {
   const { id } = useParams();
@@ -15,111 +16,33 @@ const TodaysDealDetail = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [showReviews, setShowReviews] = useState(false);
 
-  // Mock data - Replace with API call
-  const mockProducts = {
-    1: {
-      id: 1,
-      name: "Samsung Refrigerator",
-      price: "₹34,999",
-      originalPrice: "₹42,999",
-      discount: "18%",
-      images: [
-        "https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?auto=format&fit=crop&w=600&q=80",
-        "https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?auto=format&fit=crop&w=600&q=80",
-        "https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?auto=format&fit=crop&w=600&q=80"
-      ],
-      specs: "20L Capacity, Frost Free",
-      rating: 4.7,
-      reviews: [
-        {
-          id: 1,
-          user: "Rajesh K.",
-          rating: 5,
-          date: "2024-02-15",
-          title: "Excellent refrigerator!",
-          comment: "Great cooling and energy efficient. The build quality is excellent."
-        },
-        {
-          id: 2,
-          user: "Meera S.",
-          rating: 4,
-          date: "2024-02-14",
-          title: "Good value for money",
-          comment: "Works great but the ice maker is a bit noisy."
-        }
-      ],
-      category: "Home Appliances",
-      stock: 8,
-      timeLeft: "23:45:10",
-      description: "Experience superior cooling with this frost-free refrigerator. Perfect for medium to large families with advanced features and multiple compartments.",
-      features: [
-        "Frost Free Technology",
-        "Digital Temperature Control",
-        "Multiple Compartments",
-        "Energy Efficient",
-        "Smart Diagnosis",
-        "Quick Cool",
-        "Child Lock",
-        "LED Display"
-      ],
-      specifications: {
-        "Brand": "Samsung",
-        "Model": "RT42K5468SL",
-        "Capacity": "415 Litres",
-        "Type": "Frost Free",
-        "Star Rating": "5 Star",
-        "Warranty": "1 Year Comprehensive",
-        "Color": "Silver",
-        "Power": "160 Watts"
-      },
-      relatedDeals: [
-        {
-          id: 2,
-          name: "Aquaguard Water Purifier",
-          price: "₹12,999",
-          originalPrice: "₹15,999",
-          discount: "18%",
-          image: "https://images.unsplash.com/photo-1603775020644-eb8debd59791?auto=format&fit=crop&w=400&q=80",
-          category: "Water & Kitchen",
-          timeLeft: "23:45:10"
-        },
-        {
-          id: 3,
-          name: "Luminous Inverter",
-          price: "₹24,999",
-          originalPrice: "₹29,999",
-          discount: "16%",
-          image: "https://images.unsplash.com/photo-1605980776566-0486c3ac7617?auto=format&fit=crop&w=400&q=80",
-          category: "Power & Electronics",
-          timeLeft: "23:45:10"
-        }
-      ]
-    }
-  };
-
   // Load product data
   useEffect(() => {
     const loadProduct = async () => {
       try {
         setLoading(true);
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        setError(null);
         
-        const productData = mockProducts[id];
-        if (productData) {
-          setProduct(productData);
-          setError(null);
+        // Fetch real product data from API
+        const productData = await productService.getProduct(id);
+        console.log('Product data received:', productData); // Debug log
+        
+        if (productData && productData.data) {
+          setProduct(productData.data);
         } else {
-          setError("Product not found");
+          setError("Invalid product data received");
         }
       } catch (err) {
-        setError("Failed to load product details. Please try again.");
+        console.error('Error loading product:', err);
+        setError(err.message || "Failed to load product details. Please try again.");
       } finally {
         setLoading(false);
       }
     };
 
-    loadProduct();
+    if (id) {
+      loadProduct();
+    }
   }, [id]);
 
   // Helper functions
@@ -292,20 +215,26 @@ const TodaysDealDetail = () => {
             {/* Description */}
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Description</h3>
-              <p className="text-gray-600 leading-relaxed">{product.description}</p>
+              <p className="text-gray-600 leading-relaxed">
+                {product.description || "No description available for this product."}
+              </p>
             </div>
 
             {/* Features */}
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">Key Features</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {product.features.map((feature, index) => (
-                  <div key={index} className="flex items-center space-x-2">
-                    <FaCheck className="w-4 h-4 text-red-500" />
-                    <span className="text-gray-600">{feature}</span>
-                  </div>
-                ))}
-              </div>
+              {product.features && product.features.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {product.features.map((feature, index) => (
+                    <div key={index} className="flex items-center space-x-2">
+                      <FaCheck className="w-4 h-4 text-blue-500" />
+                      <span className="text-gray-600">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500">No features available for this product.</p>
+              )}
             </div>
 
             {/* Quantity */}

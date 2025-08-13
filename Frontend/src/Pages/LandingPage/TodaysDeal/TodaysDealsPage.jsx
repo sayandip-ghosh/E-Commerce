@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FaShoppingCart, FaHeart, FaStar, FaEye, FaShare, FaFilter, FaSort, FaSearch, FaClock } from "react-icons/fa";
 import { Star, Timer } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import productService from "../../../services/productService";
 
 const TodaysDealsPage = () => {
   // State management
@@ -22,49 +23,8 @@ const TodaysDealsPage = () => {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(12);
-
-  // Mock data - Replace with API call
-  const mockProducts = [
-    {
-      id: 1,
-      name: "Samsung Refrigerator",
-      price: "₹34,999",
-      originalPrice: "₹42,999",
-      discount: "18%",
-      image: "https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?auto=format&fit=crop&w=400&q=80",
-      specs: "20L Capacity, Frost Free",
-      timeLeft: "23:45:10",
-      rating: 4.7,
-      reviews: 1247,
-      category: "Home Appliances"
-    },
-    {
-      id: 2,
-      name: "Aquaguard Water Purifier",
-      price: "₹12,999",
-      originalPrice: "₹15,999",
-      discount: "18%",
-      image: "https://images.unsplash.com/photo-1603775020644-eb8debd59791?auto=format&fit=crop&w=400&q=80",
-      specs: "RO+UV+UF, 8L Storage",
-      timeLeft: "23:45:10",
-      rating: 4.6,
-      reviews: 892,
-      category: "Water & Kitchen"
-    },
-    {
-      id: 3,
-      name: "Luminous Inverter",
-      price: "₹24,999",
-      originalPrice: "₹29,999",
-      discount: "16%",
-      image: "https://images.unsplash.com/photo-1605980776566-0486c3ac7617?auto=format&fit=crop&w=400&q=80",
-      specs: "1100VA, Sine Wave",
-      timeLeft: "23:45:10",
-      rating: 4.5,
-      reviews: 567,
-      category: "Power & Electronics"
-    }
-  ];
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
 
   // Categories for filtering
   const categories = [
@@ -82,18 +42,27 @@ const TodaysDealsPage = () => {
     { value: "rating", label: "Highest Rated" }
   ];
 
-  // Load data (replace with API call)
+  // Load data from backend
   useEffect(() => {
     const loadProducts = async () => {
       try {
         setLoading(true);
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setProducts(mockProducts);
-        setFilteredProducts(mockProducts);
         setError(null);
+        
+        // Get deals from backend
+        const response = await productService.getDeals();
+        
+        if (response.success) {
+          setProducts(response.data);
+          setFilteredProducts(response.data);
+          setTotalProducts(response.data.length);
+          setTotalPages(Math.ceil(response.data.length / itemsPerPage));
+        } else {
+          throw new Error(response.message || 'Failed to load products');
+        }
       } catch (err) {
-        setError("Failed to load products. Please try again.");
+        console.error('Error loading products:', err);
+        setError(err.message || "Failed to load products. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -110,7 +79,9 @@ const TodaysDealsPage = () => {
     if (searchTerm) {
       filtered = filtered.filter(product =>
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.specs.toLowerCase().includes(searchTerm.toLowerCase())
+        (product.features && product.features.some(feature => 
+          feature.toLowerCase().includes(searchTerm.toLowerCase())
+        ))
       );
     }
 
@@ -122,16 +93,28 @@ const TodaysDealsPage = () => {
     // Sort
     switch (sortBy) {
       case "discount":
-        filtered.sort((a, b) => parseFloat(b.discount) - parseFloat(a.discount));
+        filtered.sort((a, b) => {
+          const discountA = parseFloat(a.discount.replace("%", ""));
+          const discountB = parseFloat(b.discount.replace("%", ""));
+          return discountB - discountA;
+        });
         break;
       case "price-low":
-        filtered.sort((a, b) => parseFloat(a.price.replace("₹", "").replace(",", "")) - parseFloat(b.price.replace("₹", "").replace(",", "")));
+        filtered.sort((a, b) => {
+          const priceA = parseFloat(a.price.replace("₹", "").replace(",", ""));
+          const priceB = parseFloat(b.price.replace("₹", "").replace(",", ""));
+          return priceA - priceB;
+        });
         break;
       case "price-high":
-        filtered.sort((a, b) => parseFloat(b.price.replace("₹", "").replace(",", "")) - parseFloat(a.price.replace("₹", "").replace(",", "")));
+        filtered.sort((a, b) => {
+          const priceA = parseFloat(a.price.replace("₹", "").replace(",", ""));
+          const priceB = parseFloat(b.price.replace("₹", "").replace(",", ""));
+          return priceB - priceA;
+        });
         break;
       case "rating":
-        filtered.sort((a, b) => b.rating - a.rating);
+        filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
         break;
       default:
         break;
@@ -139,13 +122,13 @@ const TodaysDealsPage = () => {
 
     setFilteredProducts(filtered);
     setCurrentPage(1);
-  }, [products, searchTerm, selectedCategory, sortBy]);
+    setTotalPages(Math.ceil(filtered.length / itemsPerPage));
+  }, [products, searchTerm, selectedCategory, sortBy, itemsPerPage]);
 
   // Pagination
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentProducts = filteredProducts.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
 
   // Helper functions
   const toggleFavorite = (id) => {
@@ -160,11 +143,12 @@ const TodaysDealsPage = () => {
 
   const renderStars = (rating) => {
     const stars = [];
+    const ratingValue = rating || 0;
     for (let i = 1; i <= 5; i++) {
       stars.push(
         <FaStar
           key={i}
-          className={`text-sm ${i <= rating ? 'text-yellow-400' : 'text-gray-300'}`}
+          className={`text-sm ${i <= ratingValue ? 'text-yellow-400' : 'text-gray-300'}`}
         />
       );
     }
@@ -291,7 +275,7 @@ const TodaysDealsPage = () => {
         {/* Results Summary */}
         <div className="flex items-center justify-between mb-6">
           <p className="text-gray-600">
-            Showing {filteredProducts.length} of {products.length} deals
+            Showing {filteredProducts.length} of {totalProducts} deals
           </p>
           <div className="flex items-center space-x-2 text-sm text-gray-500">
             <Timer className="w-4 h-4" />
@@ -304,10 +288,10 @@ const TodaysDealsPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {currentProducts.map((product, index) => (
               <div
-                key={product.id}
+                key={product._id}
                 className="group bg-white rounded-2xl shadow-lg overflow-hidden transition-all duration-500 transform hover:-translate-y-4 hover:shadow-2xl border border-gray-100 relative card-hover animate-fade-in flex flex-col cursor-pointer"
                 style={{ animationDelay: `${index * 0.1}s` }}
-                onMouseEnter={() => setHoveredCard(product.id)}
+                onMouseEnter={() => setHoveredCard(product._id)}
                 onMouseLeave={() => setHoveredCard(null)}
               >
                 {/* Deal Badge */}
@@ -322,10 +306,10 @@ const TodaysDealsPage = () => {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      toggleFavorite(product.id);
+                      toggleFavorite(product._id);
                     }}
                     className={`p-2 rounded-full transition-all duration-300 ${
-                      favorites.has(product.id)
+                      favorites.has(product._id)
                         ? 'bg-red-500 text-white shadow-lg scale-110'
                         : 'bg-white text-gray-600 hover:text-red-500 hover:bg-red-50'
                     } shadow-md hover:scale-110`}
@@ -336,7 +320,7 @@ const TodaysDealsPage = () => {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setQuickView(product.id);
+                      setQuickView(product._id);
                     }}
                     className="p-2 rounded-full bg-white text-gray-600 hover:text-red-600 hover:bg-red-50 shadow-md hover:scale-110 transition-all duration-300"
                     aria-label="Quick view"
@@ -353,7 +337,7 @@ const TodaysDealsPage = () => {
                 </div>
 
                 {/* Clickable Product Content */}
-                <NavLink to={`/todays-deals/${product.id}`} className="flex flex-col flex-grow">
+                <NavLink to={`/todays-deals/${product._id}`} className="flex flex-col flex-grow">
                   {/* Product Image */}
                   <div className="relative p-6 flex justify-center items-center h-64 bg-gradient-to-br from-gray-50 via-white to-gray-100 overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-br from-red-50/50 to-orange-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10"></div>
@@ -385,7 +369,7 @@ const TodaysDealsPage = () => {
                     </div>
 
                     <p className="text-gray-600 text-sm mb-3 line-clamp-2 leading-relaxed">
-                      {product.specs}
+                      {product.features && product.features.length > 0 ? product.features[0] : 'Premium quality product'}
                     </p>
 
                     {/* Rating and Reviews */}
@@ -395,12 +379,12 @@ const TodaysDealsPage = () => {
                           {renderStars(product.rating)}
                         </div>
                         <span className="text-sm text-gray-500 font-medium">
-                          ({product.reviews})
+                          ({product.views || 0})
                         </span>
                       </div>
                       <div className="flex items-center space-x-1 text-red-600 text-sm font-medium">
                         <FaClock className="w-4 h-4" />
-                        <span>{product.timeLeft}</span>
+                        <span>Limited Time</span>
                       </div>
                     </div>
 
@@ -412,14 +396,14 @@ const TodaysDealsPage = () => {
                           e.stopPropagation();
                         }}
                         className={`w-full py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-3 group-hover:shadow-lg ${
-                          hoveredCard === product.id
+                          hoveredCard === product._id
                             ? 'bg-gradient-to-r from-red-600 to-orange-600 text-white transform scale-105'
                             : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 hover:from-red-50 hover:to-orange-50 hover:text-red-600'
                         } btn-animate`}
                       >
                         <FaShoppingCart className="text-sm" />
                         <span>View Details</span>
-                        {hoveredCard === product.id && (
+                        {hoveredCard === product._id && (
                           <span className="ml-2 transform translate-x-1 transition-transform duration-300">→</span>
                         )}
                       </button>
@@ -428,7 +412,7 @@ const TodaysDealsPage = () => {
                 </NavLink>
 
                 {/* Hover Glow Effect */}
-                {hoveredCard === product.id && (
+                {hoveredCard === product._id && (
                   <div className="absolute inset-0 bg-gradient-to-t from-red-500/5 to-orange-500/5 pointer-events-none rounded-2xl z-10"></div>
                 )}
               </div>

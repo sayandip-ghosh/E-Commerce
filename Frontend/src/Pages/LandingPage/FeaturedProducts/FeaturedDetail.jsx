@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FaShoppingCart, FaHeart, FaStar, FaShare, FaTruck, FaShieldAlt, FaUndo, FaCheck } from "react-icons/fa";
 import { Star, ArrowLeft } from "lucide-react";
 import { useParams, NavLink } from "react-router-dom";
+import productService from "../../../services/productService";
 
 const FeaturedDetail = () => {
   const { id } = useParams();
@@ -15,107 +16,33 @@ const FeaturedDetail = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [showReviews, setShowReviews] = useState(false);
 
-  // Mock data - Replace with API call
-  const mockProducts = {
-    1: {
-      id: 1,
-      name: "LG Washing Machine",
-      price: "₹28,999",
-      originalPrice: "₹34,999",
-      discount: "17%",
-      images: [
-        "https://images.unsplash.com/photo-1626804475297-41608eaabe00?auto=format&fit=crop&w=600&q=80",
-        "https://images.unsplash.com/photo-1626804475297-41608eaabe00?auto=format&fit=crop&w=600&q=80",
-        "https://images.unsplash.com/photo-1626804475297-41608eaabe00?auto=format&fit=crop&w=600&q=80"
-      ],
-      specs: "7kg, Fully Automatic",
-      rating: 4.8,
-      reviews: [
-        {
-          id: 1,
-          user: "Rahul K.",
-          rating: 5,
-          date: "2024-01-15",
-          title: "Excellent washing machine!",
-          comment: "Great performance and energy efficient. The build quality is excellent."
-        },
-        {
-          id: 2,
-          user: "Priya M.",
-          rating: 4,
-          date: "2024-01-10",
-          title: "Good value for money",
-          comment: "Works great for daily use. Multiple wash programs are very useful."
-        }
-      ],
-      category: "Home Appliances",
-      stock: 15,
-      description: "Experience superior washing performance with this 7kg fully automatic washing machine. Perfect for medium to large families with advanced features and multiple wash programs.",
-      features: [
-        "7kg Capacity",
-        "Fully Automatic",
-        "Multiple Wash Programs",
-        "Energy Efficient",
-        "Smart Diagnosis",
-        "Quick Wash",
-        "Child Lock",
-        "Digital Display"
-      ],
-      specifications: {
-        "Brand": "LG",
-        "Model": "FHM1207SDL",
-        "Capacity": "7 Kg",
-        "Type": "Fully Automatic",
-        "Programs": "12 Wash Programs",
-        "Energy Rating": "5 Star",
-        "Warranty": "2 Years"
-      },
-      relatedProducts: [
-        {
-          id: 2,
-          name: "Prestige Induction",
-          price: "₹2,499",
-          originalPrice: "₹2,999",
-          discount: "16%",
-          image: "https://images.unsplash.com/photo-1586201375761-83865001e1ef?auto=format&fit=crop&w=400&q=80",
-          category: "Water & Kitchen"
-        },
-        {
-          id: 3,
-          name: "Havells Fan",
-          price: "₹3,199",
-          originalPrice: "₹3,799",
-          discount: "15%",
-          image: "https://images.unsplash.com/photo-1589391886645-d51941baf7fb?auto=format&fit=crop&w=400&q=80",
-          category: "Home Appliances"
-        }
-      ]
-    }
-  };
-
   // Load product data
   useEffect(() => {
     const loadProduct = async () => {
       try {
         setLoading(true);
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        setError(null);
         
-        const productData = mockProducts[id];
-        if (productData) {
-          setProduct(productData);
-          setError(null);
+        // Fetch real product data from API
+        const productData = await productService.getProduct(id);
+        console.log('Product data received:', productData); // Debug log
+        
+        if (productData && productData.data) {
+          setProduct(productData.data);
         } else {
-          setError("Product not found");
+          setError("Invalid product data received");
         }
       } catch (err) {
-        setError("Failed to load product details. Please try again.");
+        console.error('Error loading product:', err);
+        setError(err.message || "Failed to load product details. Please try again.");
       } finally {
         setLoading(false);
       }
     };
 
-    loadProduct();
+    if (id) {
+      loadProduct();
+    }
   }, [id]);
 
   // Helper functions
@@ -205,11 +132,17 @@ const FeaturedDetail = () => {
           <div className="space-y-4">
             {/* Main Image */}
             <div className="relative bg-white rounded-2xl shadow-lg overflow-hidden">
-              <img
-                src={product.images[selectedImage]}
-                alt={product.name}
-                className="w-full h-96 object-cover"
-              />
+              {product.images && product.images.length > 0 ? (
+                <img
+                  src={product.images[selectedImage]}
+                  alt={product.name}
+                  className="w-full h-96 object-cover"
+                />
+              ) : (
+                <div className="w-full h-96 bg-gray-200 flex items-center justify-center">
+                  <span className="text-gray-500">No image available</span>
+                </div>
+              )}
               {/* Featured Badge */}
               <div className="absolute top-4 left-4">
                 <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded-full text-sm font-bold shadow-xl border-2 border-white">
@@ -219,25 +152,27 @@ const FeaturedDetail = () => {
             </div>
 
             {/* Thumbnail Images */}
-            <div className="flex space-x-4">
-              {product.images.map((image, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedImage(index)}
-                  className={`w-20 h-20 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
-                    selectedImage === index
-                      ? 'border-blue-500 shadow-lg'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <img
-                    src={image}
-                    alt={`${product.name} ${index + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                </button>
-              ))}
-            </div>
+            {product.images && product.images.length > 0 && (
+              <div className="flex space-x-4">
+                {product.images.map((image, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setSelectedImage(index)}
+                    className={`w-20 h-20 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                      selectedImage === index
+                        ? 'border-blue-500 shadow-lg'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <img
+                      src={image}
+                      alt={`${product.name} ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Product Details */}
@@ -281,20 +216,26 @@ const FeaturedDetail = () => {
             {/* Description */}
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Description</h3>
-              <p className="text-gray-600 leading-relaxed">{product.description}</p>
+              <p className="text-gray-600 leading-relaxed">
+                {product.description || "No description available for this product."}
+              </p>
             </div>
 
             {/* Features */}
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">Key Features</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {product.features.map((feature, index) => (
-                  <div key={index} className="flex items-center space-x-2">
-                    <FaCheck className="w-4 h-4 text-blue-500" />
-                    <span className="text-gray-600">{feature}</span>
-                  </div>
-                ))}
-              </div>
+              {product.features && product.features.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {product.features.map((feature, index) => (
+                    <div key={index} className="flex items-center space-x-2">
+                      <FaCheck className="w-4 h-4 text-blue-500" />
+                      <span className="text-gray-600">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500">No features available for this product.</p>
+              )}
             </div>
 
             {/* Quantity */}
@@ -348,16 +289,20 @@ const FeaturedDetail = () => {
             {/* Specifications */}
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">Specifications</h3>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {Object.entries(product.specifications).map(([key, value]) => (
-                    <div key={key} className="flex justify-between">
-                      <span className="text-gray-600 font-medium">{key}</span>
-                      <span className="text-gray-900">{value}</span>
-                    </div>
-                  ))}
+              {product.specifications && Object.keys(product.specifications).length > 0 ? (
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {Object.entries(product.specifications).map(([key, value]) => (
+                      <div key={key} className="flex justify-between">
+                        <span className="text-gray-600 font-medium">{key}</span>
+                        <span className="text-gray-900">{value}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <p className="text-gray-500">No specifications available for this product.</p>
+              )}
             </div>
           </div>
         </div>
@@ -366,77 +311,102 @@ const FeaturedDetail = () => {
         <div className="mt-16">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-900">Customer Reviews</h2>
-            <button
-              onClick={() => setShowReviews(!showReviews)}
-              className="text-blue-600 hover:text-blue-700 font-medium"
-            >
-              {showReviews ? 'Show Less' : 'Show All Reviews'}
-            </button>
+            {product.reviews && product.reviews.length > 0 && (
+              <button
+                onClick={() => setShowReviews(!showReviews)}
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
+                {showReviews ? 'Show Less' : 'Show All Reviews'}
+              </button>
+            )}
           </div>
           
-          <div className="space-y-6">
-            {product.reviews.slice(0, showReviews ? product.reviews.length : 2).map((review) => (
-              <div key={review.id} className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
-                      {review.user.charAt(0)}
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-900">{review.user}</h4>
-                      <div className="flex items-center space-x-2">
-                        <div className="flex text-yellow-400">
-                          {renderStars(review.rating)}
+          {product.reviews && product.reviews.length > 0 ? (
+            <div className="space-y-6">
+              {product.reviews.slice(0, showReviews ? product.reviews.length : 2).map((review) => (
+                <div key={review.id} className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
+                        {review.user.charAt(0)}
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900">{review.user}</h4>
+                        <div className="flex items-center space-x-2">
+                          <div className="flex text-yellow-400">
+                            {renderStars(review.rating)}
+                          </div>
+                          <span className="text-sm text-gray-500">{review.date}</span>
                         </div>
-                        <span className="text-sm text-gray-500">{review.date}</span>
                       </div>
                     </div>
                   </div>
+                  <h5 className="font-semibold text-gray-900 mb-2">{review.title}</h5>
+                  <p className="text-gray-600">{review.comment}</p>
                 </div>
-                <h5 className="font-semibold text-gray-900 mb-2">{review.title}</h5>
-                <p className="text-gray-600">{review.comment}</p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No reviews available for this product yet.</p>
+            </div>
+          )}
         </div>
 
         {/* Related Products */}
         <div className="mt-16">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Related Featured Products</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {product.relatedProducts.map((relatedProduct) => (
-              <div key={relatedProduct.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
-                <div className="relative">
-                  <img
-                    src={relatedProduct.image}
-                    alt={relatedProduct.name}
-                    className="w-full h-48 object-cover"
-                  />
-                  <div className="absolute top-2 left-2">
-                    <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1 rounded-full text-xs font-bold">
-                      Featured
+          {product.relatedProducts && product.relatedProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {product.relatedProducts.map((relatedProduct) => (
+                <div key={relatedProduct.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
+                  <div className="relative">
+                    <img
+                      src={relatedProduct.image}
+                      alt={relatedProduct.name}
+                      className="w-full h-48 object-cover"
+                    />
+                    <div className="absolute top-2 left-2">
+                      <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                        Featured
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{relatedProduct.name}</h3>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-lg font-bold text-blue-600">{relatedProduct.price}</span>
+                        <span className="text-sm text-gray-500 line-through">{relatedProduct.originalPrice}</span>
+                      </div>
+                      <NavLink
+                        to={`/featured/${relatedProduct.id}`}
+                        className="text-blue-600 hover:text-blue-700 font-medium text-sm"
+                      >
+                        View Details →
+                      </NavLink>
                     </div>
                   </div>
                 </div>
-                <div className="p-4">
-                  <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{relatedProduct.name}</h3>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-lg font-bold text-blue-600">{relatedProduct.price}</span>
-                      <span className="text-sm text-gray-500 line-through">{relatedProduct.originalPrice}</span>
-                    </div>
-                    <NavLink
-                      to={`/featured/${relatedProduct.id}`}
-                      className="text-blue-600 hover:text-blue-700 font-medium text-sm"
-                    >
-                      View Details →
-                    </NavLink>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No related products available at the moment.</p>
+            </div>
+          )}
         </div>
+        {/* Debug Section - Only show in development */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-16 p-6 bg-gray-100 rounded-lg">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Debug Info (Development Only)</h2>
+            <div className="bg-white p-4 rounded border">
+              <pre className="text-sm text-gray-700 overflow-auto">
+                {JSON.stringify(product, null, 2)}
+              </pre>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FaShoppingCart, FaHeart, FaStar, FaShare, FaTruck, FaShieldAlt, FaUndo, FaCheck } from "react-icons/fa";
 import { Star, ArrowLeft } from "lucide-react";
 import { useParams, NavLink } from "react-router-dom";
+import productService from "../../../services/productService";
 
 const NewArrivalDetail = () => {
   const { id } = useParams();
@@ -15,109 +16,33 @@ const NewArrivalDetail = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [showReviews, setShowReviews] = useState(false);
 
-  // Mock data - Replace with API call
-  const mockProducts = {
-    1: {
-      id: 1,
-      name: "Philips Air Fryer",
-      price: "₹12,999",
-      originalPrice: "₹15,999",
-      discount: "18%",
-      images: [
-        "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=600&q=80",
-        "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=600&q=80",
-        "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=600&q=80"
-      ],
-      specs: "4.1L, Digital Display",
-      rating: 4.5,
-      reviews: [
-        {
-          id: 1,
-          user: "Amit S.",
-          rating: 5,
-          date: "2024-02-15",
-          title: "Amazing air fryer!",
-          comment: "Perfect for healthy cooking. The digital display makes it very easy to use."
-        },
-        {
-          id: 2,
-          user: "Neha R.",
-          rating: 4,
-          date: "2024-02-14",
-          title: "Good product",
-          comment: "Works great but takes some time to get used to the settings."
-        }
-      ],
-      category: "Water & Kitchen",
-      stock: 10,
-      description: "Experience healthier cooking with this advanced digital air fryer. Perfect for families, featuring multiple cooking modes and a spacious 4.1L capacity.",
-      features: [
-        "4.1L Capacity",
-        "Digital Touch Display",
-        "8 Preset Modes",
-        "Rapid Air Technology",
-        "Non-stick Basket",
-        "Auto Shut-off",
-        "Temperature Control",
-        "Timer Function"
-      ],
-      specifications: {
-        "Brand": "Philips",
-        "Model": "HD9252/90",
-        "Capacity": "4.1 Litres",
-        "Power": "1400 Watts",
-        "Technology": "Rapid Air",
-        "Material": "Plastic, Metal",
-        "Warranty": "2 Years",
-        "Color": "Black"
-      },
-      launchDate: "2024-02-15",
-      relatedProducts: [
-        {
-          id: 2,
-          name: "Samsung MicroOven",
-          price: "₹14,999",
-          originalPrice: "₹17,999",
-          discount: "16%",
-          image: "https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?auto=format&fit=crop&w=400&q=80",
-          category: "Water & Kitchen"
-        },
-        {
-          id: 3,
-          name: "V-Guard Inverter Battery",
-          price: "₹18,999",
-          originalPrice: "₹21,999",
-          discount: "13%",
-          image: "https://images.unsplash.com/photo-1605980776566-0486c3ac7617?auto=format&fit=crop&w=400&q=80",
-          category: "Power & Electronics"
-        }
-      ]
-    }
-  };
-
   // Load product data
   useEffect(() => {
     const loadProduct = async () => {
       try {
         setLoading(true);
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        setError(null);
         
-        const productData = mockProducts[id];
-        if (productData) {
-          setProduct(productData);
-          setError(null);
+        // Fetch real product data from API
+        const productData = await productService.getProduct(id);
+        console.log('Product data received:', productData); // Debug log
+        
+        if (productData && productData.data) {
+          setProduct(productData.data);
         } else {
-          setError("Product not found");
+          setError("Invalid product data received");
         }
       } catch (err) {
-        setError("Failed to load product details. Please try again.");
+        console.error('Error loading product:', err);
+        setError(err.message || "Failed to load product details. Please try again.");
       } finally {
         setLoading(false);
       }
     };
 
-    loadProduct();
+    if (id) {
+      loadProduct();
+    }
   }, [id]);
 
   // Helper functions
@@ -283,20 +208,26 @@ const NewArrivalDetail = () => {
             {/* Description */}
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Description</h3>
-              <p className="text-gray-600 leading-relaxed">{product.description}</p>
+              <p className="text-gray-600 leading-relaxed">
+                {product.description || "No description available for this product."}
+              </p>
             </div>
 
             {/* Features */}
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">Key Features</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {product.features.map((feature, index) => (
-                  <div key={index} className="flex items-center space-x-2">
-                    <FaCheck className="w-4 h-4 text-green-500" />
-                    <span className="text-gray-600">{feature}</span>
-                  </div>
-                ))}
-              </div>
+              {product.features && product.features.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {product.features.map((feature, index) => (
+                    <div key={index} className="flex items-center space-x-2">
+                      <FaCheck className="w-4 h-4 text-blue-500" />
+                      <span className="text-gray-600">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500">No features available for this product.</p>
+              )}
             </div>
 
             {/* Quantity */}

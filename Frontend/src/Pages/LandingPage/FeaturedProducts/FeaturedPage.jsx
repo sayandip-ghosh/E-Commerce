@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FaShoppingCart, FaHeart, FaStar, FaRegStar, FaEye, FaShare, FaFilter, FaSort, FaSearch } from "react-icons/fa";
 import { Star } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import productService from "../../../services/productService";
 
 const FeaturedPage = () => {
   // State management
@@ -22,40 +23,8 @@ const FeaturedPage = () => {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(12);
-
-  // Mock data - Replace with API call
-  const mockProducts = [
-    {
-      id: 1,
-      name: "LG Washing Machine",
-      price: "₹28,999",
-      image: "https://images.unsplash.com/photo-1626804475297-41608eaabe00?auto=format&fit=crop&w=400&q=80",
-      specs: "7kg, Fully Automatic",
-      rating: 4.8,
-      reviews: 2156,
-      category: "Home Appliances"
-    },
-    {
-      id: 2,
-      name: "Prestige Induction",
-      price: "₹2,499",
-      image: "https://images.unsplash.com/photo-1586201375761-83865001e1ef?auto=format&fit=crop&w=400&q=80",
-      specs: "2000W, 7 Presets",
-      rating: 4.6,
-      reviews: 1893,
-      category: "Water & Kitchen"
-    },
-    {
-      id: 3,
-      name: "Havells Fan",
-      price: "₹3,199",
-      image: "https://images.unsplash.com/photo-1589391886645-d51941baf7fb?auto=format&fit=crop&w=400&q=80",
-      specs: "1200mm, 3 Speed",
-      rating: 4.5,
-      reviews: 1342,
-      category: "Home Appliances"
-    }
-  ];
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
 
   // Categories for filtering
   const categories = [
@@ -73,18 +42,27 @@ const FeaturedPage = () => {
     { value: "rating", label: "Highest Rated" }
   ];
 
-  // Load data (replace with API call)
+  // Load data from backend
   useEffect(() => {
     const loadProducts = async () => {
       try {
         setLoading(true);
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setProducts(mockProducts);
-        setFilteredProducts(mockProducts);
         setError(null);
+        
+        // Get featured products from backend
+        const response = await productService.getFeaturedProducts();
+        
+        if (response.success) {
+          setProducts(response.data);
+          setFilteredProducts(response.data);
+          setTotalProducts(response.data.length);
+          setTotalPages(Math.ceil(response.data.length / itemsPerPage));
+        } else {
+          throw new Error(response.message || 'Failed to load products');
+        }
       } catch (err) {
-        setError("Failed to load products. Please try again.");
+        console.error('Error loading products:', err);
+        setError(err.message || "Failed to load products. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -101,7 +79,9 @@ const FeaturedPage = () => {
     if (searchTerm) {
       filtered = filtered.filter(product =>
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.specs.toLowerCase().includes(searchTerm.toLowerCase())
+        (product.features && product.features.some(feature => 
+          feature.toLowerCase().includes(searchTerm.toLowerCase())
+        ))
       );
     }
 
@@ -113,13 +93,21 @@ const FeaturedPage = () => {
     // Sort
     switch (sortBy) {
       case "price-low":
-        filtered.sort((a, b) => parseFloat(a.price.replace("₹", "").replace(",", "")) - parseFloat(b.price.replace("₹", "").replace(",", "")));
+        filtered.sort((a, b) => {
+          const priceA = parseFloat(a.price.replace("₹", "").replace(",", ""));
+          const priceB = parseFloat(b.price.replace("₹", "").replace(",", ""));
+          return priceA - priceB;
+        });
         break;
       case "price-high":
-        filtered.sort((a, b) => parseFloat(b.price.replace("₹", "").replace(",", "")) - parseFloat(a.price.replace("₹", "").replace(",", "")));
+        filtered.sort((a, b) => {
+          const priceA = parseFloat(a.price.replace("₹", "").replace(",", ""));
+          const priceB = parseFloat(b.price.replace("₹", "").replace(",", ""));
+          return priceB - priceA;
+        });
         break;
       case "rating":
-        filtered.sort((a, b) => b.rating - a.rating);
+        filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
         break;
       default:
         // Featured - keep original order
@@ -128,13 +116,13 @@ const FeaturedPage = () => {
 
     setFilteredProducts(filtered);
     setCurrentPage(1);
-  }, [products, searchTerm, selectedCategory, sortBy]);
+    setTotalPages(Math.ceil(filtered.length / itemsPerPage));
+  }, [products, searchTerm, selectedCategory, sortBy, itemsPerPage]);
 
   // Pagination
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentProducts = filteredProducts.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
 
   // Helper functions
   const toggleFavorite = (id) => {
@@ -149,11 +137,12 @@ const FeaturedPage = () => {
 
   const renderStars = (rating) => {
     const stars = [];
+    const ratingValue = rating || 0;
     for (let i = 1; i <= 5; i++) {
       stars.push(
         <FaStar
           key={i}
-          className={`text-sm ${i <= rating ? 'text-yellow-400' : 'text-gray-300'}`}
+          className={`text-sm ${i <= ratingValue ? 'text-yellow-400' : 'text-gray-300'}`}
         />
       );
     }
@@ -280,7 +269,7 @@ const FeaturedPage = () => {
         {/* Results Summary */}
         <div className="flex items-center justify-between mb-6">
           <p className="text-gray-600">
-            Showing {filteredProducts.length} of {products.length} products
+            Showing {filteredProducts.length} of {totalProducts} products
           </p>
           <div className="flex items-center space-x-2 text-sm text-gray-500">
             <Star className="w-4 h-4" />
@@ -293,10 +282,10 @@ const FeaturedPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {currentProducts.map((product, index) => (
               <div
-                key={product.id}
+                key={product._id}
                 className="group bg-white rounded-2xl shadow-lg overflow-hidden transition-all duration-500 transform hover:-translate-y-4 hover:shadow-2xl border border-gray-100 relative card-hover animate-fade-in flex flex-col cursor-pointer"
                 style={{ animationDelay: `${index * 0.1}s` }}
-                onMouseEnter={() => setHoveredCard(product.id)}
+                onMouseEnter={() => setHoveredCard(product._id)}
                 onMouseLeave={() => setHoveredCard(null)}
               >
                 {/* Featured Badge */}
@@ -311,10 +300,10 @@ const FeaturedPage = () => {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      toggleFavorite(product.id);
+                      toggleFavorite(product._id);
                     }}
                     className={`p-2 rounded-full transition-all duration-300 ${
-                      favorites.has(product.id)
+                      favorites.has(product._id)
                         ? 'bg-red-500 text-white shadow-lg scale-110'
                         : 'bg-white text-gray-600 hover:text-red-500 hover:bg-red-50'
                     } shadow-md hover:scale-110`}
@@ -325,7 +314,7 @@ const FeaturedPage = () => {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setQuickView(product.id);
+                      setQuickView(product._id);
                     }}
                     className="p-2 rounded-full bg-white text-gray-600 hover:text-blue-600 hover:bg-blue-50 shadow-md hover:scale-110 transition-all duration-300"
                     aria-label="Quick view"
@@ -342,7 +331,7 @@ const FeaturedPage = () => {
                 </div>
 
                 {/* Clickable Product Content */}
-                <NavLink to={`/featured/${product.id}`} className="flex flex-col flex-grow">
+                <NavLink to={`/featured/${product._id}`} className="flex flex-col flex-grow">
                   {/* Product Image */}
                   <div className="relative p-6 flex justify-center items-center h-64 bg-gradient-to-br from-gray-50 via-white to-gray-100 overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-purple-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10"></div>
@@ -369,7 +358,7 @@ const FeaturedPage = () => {
                     </div>
 
                     <p className="text-gray-600 text-sm mb-3 line-clamp-2 leading-relaxed">
-                      {product.specs}
+                      {product.features && product.features.length > 0 ? product.features[0] : 'Premium quality product'}
                     </p>
 
                     {/* Rating and Reviews */}
@@ -379,7 +368,7 @@ const FeaturedPage = () => {
                           {renderStars(product.rating)}
                         </div>
                         <span className="text-sm text-gray-500 font-medium">
-                          ({product.reviews})
+                          ({product.views || 0})
                         </span>
                       </div>
                       <div className="flex items-center space-x-1 text-blue-600 text-sm font-medium">
@@ -396,14 +385,14 @@ const FeaturedPage = () => {
                           e.stopPropagation();
                         }}
                         className={`w-full py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-3 group-hover:shadow-lg ${
-                          hoveredCard === product.id
+                          hoveredCard === product._id
                             ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white transform scale-105'
                             : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 hover:from-blue-50 hover:to-purple-50 hover:text-blue-600'
                         } btn-animate`}
                       >
                         <FaShoppingCart className="text-sm" />
                         <span>Add to Cart</span>
-                        {hoveredCard === product.id && (
+                        {hoveredCard === product._id && (
                           <span className="ml-2 transform translate-x-1 transition-transform duration-300">→</span>
                         )}
                       </button>
@@ -412,7 +401,7 @@ const FeaturedPage = () => {
                 </NavLink>
 
                 {/* Hover Glow Effect */}
-                {hoveredCard === product.id && (
+                {hoveredCard === product._id && (
                   <div className="absolute inset-0 bg-gradient-to-t from-blue-500/5 to-purple-500/5 pointer-events-none rounded-2xl z-10"></div>
                 )}
               </div>
